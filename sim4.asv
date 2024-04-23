@@ -65,8 +65,6 @@ A60 = [
 eg_30mph = eig(A30);
 eg_60mph = eig(A60);
 
-understeer60 = 
-
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
 
@@ -206,12 +204,12 @@ xlabel('time (sec)');
 ylabel('delta (rad)');
 legend('Original input signal', 'Modified input signal');
 
-%% 5. Use the steering input calculated in 4) as an input to your simulation. Plot the time history of the
+%% Use the steering input calculated in 4) as an input to your simulation. Plot the time history of the
 % state variables drift angle 𝛽 and yaw rate 𝑟 at 30 and 60 mph.
 
 % Speeds of interest:
 u30 = 30*mph2ftps;
-u60 = 60*mph2ftps;
+u60 = 60
 
 % Time domain simulation:
 states_arr30 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u30, delta_mod);
@@ -235,15 +233,16 @@ legend('30 mph', '60 mph');
 subplot(2,1,2);
 plot(t, states_arr30(2,:));
 xlabel('time (sec)');
-ylabel('yaw rate (rad/sec)');  
+ylabel('yaw rate (rad/sec)');
+title('yaw rate for 30 mph');    
 hold on;
 plot(t, states_arr60(2,:));
-title('yaw rate for 30 and 60 mph');
+xlabel('time (sec)');
+ylabel('yaw rate (rad/sec)');
+title('yaw rate for 60 mph');
 legend('30 mph', '60 mph');
 
 
-%% 6. Add nonlinear tires and assume equal roll moment front and rear, 60/40 biased to the front, and
-% 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
 
 
 %% Run time domain simulation:
