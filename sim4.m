@@ -43,15 +43,23 @@ dt = 0.01;
 t_initial = 0;
 t_final = 25;
 
+t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
 % Generate a step input for the steering angle delta:
-delta = zeros(1, t_final / dt);
+delta = zeros(1, length(t));
+delta(1, length(t)/2:length(t)) = 0.1;
 
-states_arr = simulate_bike_2dof(dt, t_initial, t_final, m, x1, x2, C1, C2, Iz, vx, delta);
+states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, vx, delta);
+
+% Time plots for each state:
+figure
+plot(t, states_arr(1,:));
+figure
+plot(t, states_arr(2,:));
 
 
-
-function states_arr = simulate_bike_2dof(dt, t_initial, t_final, m, x1, x2, C1, C2, Iz, u, delta)
-    %% Bicycle model using attack angle conventions:
+function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
+    % Bicycle model using attack angle conventions:
     % Attack angle is the negative of the slip angle
     % The sign is embedded in the x1 and x2 distances
     
@@ -71,8 +79,6 @@ function states_arr = simulate_bike_2dof(dt, t_initial, t_final, m, x1, x2, C1, 
     
     A_dis = eye(2) + dt * A;
     B_dis = dt * B;
-    
-    t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
     
     % Initial conditions:
     states = [0; 0];
