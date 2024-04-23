@@ -25,9 +25,10 @@ dl_dphi_r = 500; % lbs*ft
 
 p = 12*in2ft; % ft
 d = 12*in2ft; % ft
+gear_ratio = 15; % []
 efficiency = 1.0; % Steering gearbox efficiency
 Ks = 10*in2ft*rad2deg; % (in*lbs/deg)*(ft/in)*(deg/rad) -> ft*lbs / rad
-tm = 3*in2ft; % in - Pneumatic trail
+tm = 3*in2ft; % in*(ft/in)-> ft - Pneumatic trail
 
 g = 32.174; % ft/sec^2
 
@@ -36,8 +37,8 @@ ms = Ws / g;
 
 % u = 30; % ft/sec
 
-C1 = 140*rad2deg;
-C2 = 140*rad2deg;
+C1 = 140*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
+C2 = 140*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
 
 dt = 0.01;
 t_initial = 0;
@@ -51,13 +52,13 @@ u60 = 60*mph2ftps;
 
 
 A30 = [
-    (-C1 - C2)/(m*u30), ((-x1*C1 - x2*C2)/(m*u30)) - u30;
-    (-x1*C1 - x2*C2)/(Iz*u30), (-x1^2*C1 - x2^2*C2)/(Iz*u30);
+    (-C1 - C2)/(m*u30), ((-x1*C1 - x2*C2)/(m*u30^2)) - 1;
+    (-x1*C1 - x2*C2)/(Iz), (-x1^2*C1 - x2^2*C2)/(Iz*u30);
 ];
 
 A60 = [
-    (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60)) - u60;
-    (-x1*C1 - x2*C2)/(Iz*u60), (-x1^2*C1 - x2^2*C2)/(Iz*u60);
+    (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60^2)) - 1;
+    (-x1*C1 - x2*C2)/(Iz), (-x1^2*C1 - x2^2*C2)/(Iz*u60);
 ];
 
 
@@ -105,20 +106,100 @@ hold off;
 % 2) above. We are using this step to validate your model.
 
 radius = 400; % ft
-speeds = linspace(10, 120, 11);
+speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
 figure;
-hold on;
 
 % Time domain simulation:
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 for i = 1:length(speeds)
     u = speeds(i);
-    delta = (radius / u)*ones(1, length(t));
-    states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
+
+    delta1 = ones(1, length(t))*0.02;
+    states_arr1 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
+    subplot(2,1,1);
+    plot(t, states_arr1(2,:));
+    xlabel('time (sec)');
+    ylabel('yaw rate (rad/sec)');
+    title(['yaw rate response for different speeds']);
+    hold on;
+
+    delta2 = (u / radius)*ones(1, length(t));
+    states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
+    subplot(2,1,2);
     plot(t, states_arr2(2,:));
+    xlabel('time (sec)');
+    ylabel('yaw rate (rad/sec)');
+    title(['turn response for different speeds']);
+    hold on;
 end
+
+subplot(2,1,1)
+hold off;
+subplot(2,1,2)
+hold off;
+
+%% 4. Determine a particular time series of handwheel inputs. We define this input as a 0° handwheel
+% input for 1 second, then a +45° handwheel input for 3 seconds, then a −45° handwheel input for 3
+% seconds, then back to 0° for 3 seconds. Practically we know that the maximum handwheel input a
+% driver can perform is 2 𝑟𝑒𝑣/𝑠𝑒𝑐, so modify the steering input so that the handwheel velocity is
+% consistent with this value with a 180° input amplitude. Plot the time history of the steering input 𝛿.
+
+% Time array:
+t = linspace(t_initial, t_final, (t_final - t_initial)/dt);
+
+% Generate the specified handwheel input:
+delta = zeros(1, length(t));
+% Input of 0° for 1 second:
+delta(1, 1:1/dt) = 0;
+% Input of +45° for 3 seconds:
+delta(1, 1/dt:4/dt) = 0.707;
+% Input of -45° for 3 seconds:
+delta(1, 4/dt:7/dt) = -0.707;
+% Input of 0° for 3 seconds:
+delta(1, 7/dt:length(t)) = 0;
+
+% Plot input:
+figure;
+plot(t, delta);
+grid on;
+title('steering input with no rate saturation');
+xlabel('time (sec)');
+ylabel('delta (rad)');
+
+% Modify the steering input:
+delta_mod = delta; % Copy the original input
+slope = 2*(2*pi); % rad/sec
+
+% Smooth step applied at 1 second:
+left_bound = 0;
+right_bound = 0.707;
+at = 1; % /dt;
+
+delta_mod = slope_it_down(t, dt, at, delta, left_bound, right_bound, slope);
+
+% Smooth step applied at 4 seconds:
+left_bound = 0.707;
+right_bound = -0.707;
+at = 4; % /dt;
+
+delta_mod = slope_it_down(t, dt, at, delta_mod, left_bound, right_bound, slope);
+
+% % Calculate the amount of time to reach the right bound with the given slope:
+% time_to_reach = (right_bound - left_bound) / slope; % time units
+% % at = at + time_to_reach;
+% delta_mod(1, at/dt:(at + time_to_reach)/dt) = left_bound + slope * (t(at/dt:(at + time_to_reach)/dt) - t(at/dt));
+
+% Plot input:
+figure;
+plot(t, delta);
+hold on;
+plot(t, delta_mod, 'r');
+grid on;
+title('steering input with smoothed angle transitions');
+xlabel('time (sec)');
+ylabel('delta (rad)');
 
 
 %% Run time domain simulation:
@@ -144,8 +225,8 @@ function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
     % The sign is embedded in the x1 and x2 distances
     
     A = [
-        (-C1 - C2)/(m*u), ((-x1*C1 - x2*C2)/(m*u)) - u;
-        (-x1*C1 - x2*C2)/(Iz*u), (-(x1^2)*C1 - (x2^2)*C2)/(Iz*u);
+        (-C1 - C2)/(m*u), ((-x1*C1 - x2*C2)/(m*u^2)) - 1;
+        (-x1*C1 - x2*C2)/(Iz), (-(x1^2)*C1 - (x2^2)*C2)/(Iz*u);
     ];
     
     B = [
@@ -167,6 +248,13 @@ function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
         states = A_dis * states + B_dis * delta(i);
         states_arr(:, i) = states;
     end
+end
+
+function delta = slope_it_down(t, dt, at, delta, left_bound, right_bound, slope)
+
+    time_to_reach = (right_bound - left_bound) / slope; % time units
+    delta(1, at/dt:(at + time_to_reach)/dt) = left_bound + slope * (t(at/dt:(at + time_to_reach)/dt) - t(at/dt)); % * sign(right_bound - left_bound);
+
 end
 
 
