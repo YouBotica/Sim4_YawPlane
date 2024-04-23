@@ -34,7 +34,7 @@ g = 32.174; % ft/sec^2
 m = W / g;
 ms = Ws / g;
 
-u = 30; % ft/sec
+% u = 30; % ft/sec
 
 C1 = 140*rad2deg;
 C2 = 140*rad2deg;
@@ -51,13 +51,13 @@ u60 = 60*mph2ftps;
 
 
 A30 = [
-    (-C1 - C2)/(m*u30), ((-x1*C1 - x2*C2)/(m*u30^2)) - 1;
-    (-x1*C1 - x2*C2)/Iz, (-x1^2*C1 - x2^2*C2)/(Iz*u30);
+    (-C1 - C2)/(m*u30), ((-x1*C1 - x2*C2)/(m*u30)) - u30;
+    (-x1*C1 - x2*C2)/(Iz*u30), (-x1^2*C1 - x2^2*C2)/(Iz*u30);
 ];
 
 A60 = [
-    (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60^2)) - 1;
-    (-x1*C1 - x2*C2)/Iz, (-x1^2*C1 - x2^2*C2)/(Iz*u60);
+    (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60)) - u60;
+    (-x1*C1 - x2*C2)/(Iz*u60), (-x1^2*C1 - x2^2*C2)/(Iz*u60);
 ];
 
 
@@ -67,7 +67,7 @@ eg_60mph = eig(A60);
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
 
-speeds = linspace(10, 120, 11);
+speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
 
 % Time domain simulation:
@@ -75,7 +75,7 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 % Generate a step input for the steering angle delta:
 delta = zeros(1, length(t));
-delta(1, length(t)/2:length(t)) = 0.1;
+delta(1, length(t)/4:length(t)) = 0.02;
 
 figure;
 hold on;
@@ -83,13 +83,41 @@ ylabel('yaw rate (rad/sec)')
 xlabel('time (sec)')
 title(['yaw rate response for different speeds']);
 
+legend_arr = cell(1,length(speeds));
+
 for i = 1:length(speeds)
     u = speeds(i);
     states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
 
     % Plot yaw rate vs time, use speed as legend:
     plot(t, states_arr(2,:), 'linewidth', 2);
-    % legend(num2str(speeds(i)*ftps2mph) + ' mph');
+    legend_arr{i} = num2str(u*ftps2mph); % + ' mph';
+end
+
+legend(legend_arr{:});
+
+hold off;
+
+%% 3. Using the 2-DoF equations of motion, simulate the vehicle response to a steering input.
+% Determine the steering input required to result in a 400 ft radius turn. (hint: knowing the forward
+% speed and radius of a circle, the required yaw rate can be calculated). Repeat the result at
+% increments of 10 mph from 10 to 120 mph. Compare the results with the steady-state results from
+% 2) above. We are using this step to validate your model.
+
+radius = 400; % ft
+speeds = linspace(10, 120, 11);
+speeds = speeds*mph2ftps;
+figure;
+hold on;
+
+% Time domain simulation:
+t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
+for i = 1:length(speeds)
+    u = speeds(i);
+    delta = (radius / u)*ones(1, length(t));
+    states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
+    plot(t, states_arr2(2,:));
 end
 
 
@@ -99,7 +127,7 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 % Generate a step input for the steering angle delta:
 delta = zeros(1, length(t));
-delta(1, length(t)/2:length(t)) = 0.1;
+delta(1, length(t)/4:length(t)) = 0.1;
 
 states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
 
@@ -116,8 +144,8 @@ function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
     % The sign is embedded in the x1 and x2 distances
     
     A = [
-        (-C1 - C2)/(m*u), ((-x1*C1 - x2*C2)/(m*u^2)) - 1;
-        (-x1*C1 - x2*C2)/Iz, (-(x1^2)*C1 - (x2^2)*C2)/(Iz*u);
+        (-C1 - C2)/(m*u), ((-x1*C1 - x2*C2)/(m*u)) - u;
+        (-x1*C1 - x2*C2)/(Iz*u), (-(x1^2)*C1 - (x2^2)*C2)/(Iz*u);
     ];
     
     B = [
@@ -126,9 +154,7 @@ function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
     ];
     
     
-    % Discretize using Euler:
-    dt = 0.01; % seconds
-    
+    % Discretize using Euler:    
     A_dis = eye(2) + dt * A;
     B_dis = dt * B;
     
