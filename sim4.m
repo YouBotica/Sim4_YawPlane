@@ -245,6 +245,8 @@ legend('30 mph', '60 mph');
 %% 6. Add nonlinear tires and assume equal roll moment front and rear, 60/40 biased to the front, and
 % 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
 
+C1 =  0.2*W - 0.0000942**(W^2)*deg2rad; % lbs/deg
+
 
 %% Run time domain simulation:
 
