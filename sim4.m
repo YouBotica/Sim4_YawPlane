@@ -37,14 +37,14 @@ ms = Ws / g;
 
 % u = 30; % ft/sec
 
-C1 = 140*180/pi; %*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
-C2 = 140*180/pi; % *rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
+C1 = 2*140*180/pi; %*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
+C2 = 2*140*180/pi; % *rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
 
 l2 = x1 - x2; % Wheelbase
 
 dt = 0.01;
 t_initial = 0;
-t_final = 25;
+t_final = 5;
 
 %% 1. Develop a base 2-DoF linear state space yaw rate model and calculate the system eigen values
 % when forward speed is 30 and 60 mph
@@ -69,36 +69,38 @@ eg_60mph = eig(A60);
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
 
-speeds = linspace(10, 120, 12);
-speeds = speeds*mph2ftps;
 
-% Time domain simulation:
+speeds = linspace(10, 120, 12)*mph2ftps;
+
+K_understeer_arr = zeros(1, length(speeds));
+delta2r_gain_arr = zeros(1, length(speeds));
+
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
-% Generate a step input for the steering angle delta:
-delta = zeros(1, length(t));
-delta(1, length(t)/4:length(t)) = 0.02;
 
-figure;
+figure; 
 hold on;
-ylabel('yaw rate (rad/sec)')
-xlabel('time (sec)')
-title(['yaw rate response for different speeds']);
+grid on;
+xlabel('Time (seconds)');
+ylabel('Gain (𝑟/𝛿)');
+xlim([0, 5]);
+ylim([0, 10.0]);
 
-legend_arr = cell(1,length(speeds));
-
+legend_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
-    states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-    % Plot yaw rate vs time, use speed as legend:
-    plot(t, states_arr(2,:), 'linewidth', 2);
-    legend_arr{i} = [num2str(u*ftps2mph)  ' mph']; % + ' mph';
+    K_understeer_arr(i) = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    delta2r_gain_arr(i) = u / (l2 + u*u*K_understeer_arr(i));
+    % plot each gain in an xy plot:
+    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
+    hold on;
 end
 
 legend(legend_arr{:});
-grid;
+
 hold off;
+
 
 %% 3. Using the 2-DoF equations of motion, simulate the vehicle response to a steering input.
 % Determine the steering input required to result in a 400 ft radius turn. (hint: knowing the forward
@@ -109,36 +111,62 @@ hold off;
 radius = 400; % ft
 speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
-figure;
 
 % Time domain simulation:
+t_initial = 0; % sec
+t_final = 2.5; % sec
+dt = 0.01; % sec
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
+figure;
+subplot(3,1,1);
+xlabel('Time (seconds)');
+ylabel('Gain []');
+hold on;
+grid on;
+
+subplot(3,1,2);
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+hold on;
+
+subplot(3,1,3);
+xlabel('Time (seconds)');
+ylabel('Steering angle (rad)');
+hold on;
+
+legend_gains_arr = cell(1, length(speeds));
+legend_yaw_rate_arr = cell(1, length(speeds));
+legend_steering_angle_arr = cell(1, length(speeds));
 
 for i = 1:length(speeds)
     u = speeds(i);
 
-    delta1 = ones(1, length(t))*0.02;
-    states_arr1 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
-    subplot(2,1,1);
-    plot(t, states_arr1(2,:));
-    xlabel('time (sec)');
-    ylabel('yaw rate (rad/sec)');
-    title(['yaw rate response for different speeds']);
-    hold on;
-
+    subplot(3,1,1);
+    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
+    
+    subplot(3,1,2);
     delta2 = (u / radius)*ones(1, length(t));
     states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
-    subplot(2,1,2);
     plot(t, states_arr2(2,:));
-    xlabel('time (sec)');
-    ylabel('yaw rate (rad/sec)');
-    title(['turn response for different speeds']);
-    hold on;
+    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(1))];
+
+    subplot(3,1,3);
+    plot(t, delta2);
+    legend_steering_angle_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
 end
 
-subplot(2,1,1)
-hold off;
-subplot(2,1,2)
+
+subplot(3,1,1);
+legend(legend_gains_arr);
+
+subplot(3,1,2);
+legend(legend_yaw_rate_arr);
+
+subplot(3,1,3);
+legend(legend_steering_angle_arr);
+
 hold off;
 
 %% 4. Determine a particular time series of handwheel inputs. We define this input as a 0° handwheel
