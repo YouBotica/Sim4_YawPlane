@@ -251,12 +251,12 @@ subplot(2,1,1);
 plot(t, states_arr30(1,:));
 xlabel('time (sec)');
 ylabel('drift angle (rad)');
-title('yaw rate for 30 mph');
+% title('yaw rate for 30 mph');
 hold on;
 plot(t, states_arr60(1,:));
 xlabel('time (sec)');
 ylabel('drift angle (rad)');
-title('yaw rate for 60 mph');
+title('Drift angle for 30 and 60 mph');;
 legend('30 mph', '60 mph');
 
 
@@ -266,7 +266,7 @@ xlabel('time (sec)');
 ylabel('yaw rate (rad/sec)');  
 hold on;
 plot(t, states_arr60(2,:));
-title('yaw rate for 30 and 60 mph');
+title('Yaw rate for 30 and 60 mph');
 legend('30 mph', '60 mph');
 
 
