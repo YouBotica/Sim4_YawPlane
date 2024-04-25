@@ -11,14 +11,13 @@ ftps2mph = 3600 / 5280;
 % Bicycle model parameters:
 W = 3000; % lbs
 Ws = 2700; % lbs
-g = 32.174; % ft/sec^2
 x1 = 3.5; % ft
-x2 = -4.5; % ft = -1.0; % ft
-h = -1.0;
-track_width = 6.0; % ft
-Iz = 40000 / g; % lbs*ft^2
-Ix = 15000 / g; % lbs*ft^2
-c = 0.5; % ft
+x2 = -4.5; % ft
+h = -1.0; % ft
+t = 6.0; % ft
+Iz = 40000; % lbs*ft^2
+Ix = 15000; % lbs*ft^2
+C = 0.5; % ft
 dl_phi_f = 8000; % lbs*ft
 dl_phi_r = 5000; % lbs*ft
 dl_dphi_f = 1000; % lbs*ft
@@ -31,16 +30,15 @@ efficiency = 1.0; % Steering gearbox efficiency
 Ks = 10*in2ft*rad2deg; % (in*lbs/deg)*(ft/in)*(deg/rad) -> ft*lbs / rad
 tm = 3*in2ft; % in*(ft/in)-> ft - Pneumatic trail
 
-% Masses:
+g = 32.174; % ft/sec^2
+
 m = W / g;
 ms = Ws / g;
 
 % u = 30; % ft/sec
 
-C1 = 140*180/pi; %*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
-C2 = 140*180/pi; % *rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
-
-l2 = x1 - x2; % Wheelbase
+C1 = 140*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
+C2 = 140*rad2deg; % lbs/deg * (deg/rad) -> lbs / rad
 
 dt = 0.01;
 t_initial = 0;
@@ -52,19 +50,22 @@ t_final = 25;
 u30 = 30*mph2ftps;
 u60 = 60*mph2ftps;
 
+
 A30 = [
-    (-C1 - C2)/(m*u30), (((-x1*C1 - x2*C2)/(m*u30^2)) - 1);
-    (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u30);
+    (-C1 - C2)/(m*u30), ((-x1*C1 - x2*C2)/(m*u30^2)) - 1;
+    (-x1*C1 - x2*C2)/(Iz), (-x1^2*C1 - x2^2*C2)/(Iz*u30);
 ];
 
 A60 = [
     (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60^2)) - 1;
-    (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u60);
+    (-x1*C1 - x2*C2)/(Iz), (-x1^2*C1 - x2^2*C2)/(Iz*u60);
 ];
 
 
 eg_30mph = eig(A30);
 eg_60mph = eig(A60);
+
+understeer60 = 
 
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
@@ -93,11 +94,11 @@ for i = 1:length(speeds)
 
     % Plot yaw rate vs time, use speed as legend:
     plot(t, states_arr(2,:), 'linewidth', 2);
-    legend_arr{i} = [num2str(u*ftps2mph)  ' mph']; % + ' mph';
+    legend_arr{i} = num2str(u*ftps2mph); % + ' mph';
 end
 
 legend(legend_arr{:});
-grid;
+
 hold off;
 
 %% 3. Using the 2-DoF equations of motion, simulate the vehicle response to a steering input.
@@ -244,123 +245,15 @@ legend('30 mph', '60 mph');
 %% 6. Add nonlinear tires and assume equal roll moment front and rear, 60/40 biased to the front, and
 % 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
 
-% % 50 / 50 weight bias:
-% W1 = W / 2; W2 = W / 2;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-% % 60 / 40 weight bias:
-% W1 = 0.6*W; W2 = 0.4*W;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_60_40 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-% % 40 / 60 weight bias:
-% W1 = 0.4*W; W2 = 0.6*W;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-%% Compare with 3):
-delta1 = ones(1, length(t))*0.02;
-delta2 = (u / radius)*ones(1, length(t));
-
-speeds = linspace(10, 120, 12);
-speeds = speeds*mph2ftps;
-
-% Time domain simulation:
-t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
-
-
-figure(1); % For delta 1
-hold on;
-legends = {};
-
-for i = 1:length(speeds)
-    u = speeds(i);
-
-    C1 = 140*deg2rad;
-    C2 = 140*deg2rad;
-    states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
-
-    % 50 / 50 weight bias:
-    W1 = W / 2; W2 = W / 2;
-    C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-    C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-    states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
-    plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
-    legends{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
-    plot(t, states_arr_50_50(2,:), 'linewidth', 2);
-    legends{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];    
-
-    % print u:
-    disp(['u = ' num2str(u*ftps2mph) ' mph']);
-
-    % states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
-    % subplot(4,1,2);
-    % plot(t, states_arr2(2,:));
-    % xlabel('time (sec)');
-    % ylabel('yaw rate (rad/sec)');
-    % title(['turn response for different speeds']);
-    % hold on;
-end
-
-legend(legends{:});
-hold off;
-
-% Plot the states:
-% figure;
-% subplot(2,1,1);
-% plot(t, states_arr_50_50(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 50/50 weight bias');
-% hold on;
-% plot(t, states_arr_60_40(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 60/40 weight bias');
-% hold on;
-% plot(t, states_arr_40_60(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 40/60 weight bias');
-% legend('50/50', '60/40', '40/60');
-% 
-% subplot(2,1,2);
-% plot(t, states_arr_50_50(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 50/50 weight bias');
-% hold on;
-% plot(t, states_arr_60_40(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 60/40 weight bias');
-% hold on;
-% plot(t, states_arr_40_60(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 40/60 weight bias');
-% legend('50/50', '60/40', '40/60');
-
+C1 =  0.2*W - 0.0000942**(W^2)*deg2rad; % lbs/deg
 
 %% Try out transfer functions:
-
-u = speeds(5);
-K_understeer = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
-G_yaw_rate = tf([((x1*m*u*u)/(l2*C2)), u], [(m*u*u*Iz)/(l2*C1*C2), (u/l2)*((m*x1*x1+Iz)/(C2)), l2 + u*u*K_understeer]);
-
-step(G_yaw_rate)
+K_understeer = -m*(x1*C1 + x2*C2)/(C1*C2*(x1-x2));
+G_yaw_rate = tf([((x1*m*u*u)/((x1-x2)*C1*C)), ], [])
 
 
 %% Run time domain simulation:
-t_initial = 0;
-t_final = 25;
+
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 % Generate a step input for the steering angle delta:
@@ -406,7 +299,6 @@ function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
         states_arr(:, i) = states;
     end
 end
-
 
 function delta = slope_it_down(t, dt, at, delta, left_bound, right_bound, slope)
 
