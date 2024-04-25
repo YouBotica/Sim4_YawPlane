@@ -72,7 +72,6 @@ eg_60mph = eig(A60);
 
 speeds = linspace(10, 120, 12)*mph2ftps;
 
-K_understeer_arr = zeros(1, length(speeds));
 delta2r_gain_arr = zeros(1, length(speeds));
 
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
@@ -86,11 +85,12 @@ ylabel('Gain (𝑟/𝛿)');
 xlim([0, 5]);
 ylim([0, 10.0]);
 
+K_understeer = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+
 legend_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
-    K_understeer_arr(i) = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
-    delta2r_gain_arr(i) = u / (l2 + u*u*K_understeer_arr(i));
+    delta2r_gain_arr(i) = u / (l2 + u*u*K_understeer);
     % plot each gain in an xy plot:
     plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
@@ -176,6 +176,8 @@ hold off;
 % consistent with this value with a 180° input amplitude. Plot the time history of the steering input 𝛿.
 
 % Time array:
+t_initial = 0;
+t_final = 10;
 t = linspace(t_initial, t_final, (t_final - t_initial)/dt);
 
 % Generate the specified handwheel input:
@@ -198,7 +200,6 @@ xlabel('time (sec)');
 ylabel('delta (rad)');
 
 % Modify the steering input:
-delta_mod = delta; % Copy the original input
 slope = 2*(2*pi); % rad/sec
 
 % Smooth step applied at 1 second:
@@ -311,8 +312,8 @@ legends = {};
 for i = 1:length(speeds)
     u = speeds(i);
 
-    C1 = 140*deg2rad;
-    C2 = 140*deg2rad;
+    C1 = 2*140*deg2rad;
+    C2 = 2*140*deg2rad;
     states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
 
     % 50 / 50 weight bias:
