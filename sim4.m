@@ -295,8 +295,6 @@ legend('30 mph', '60 mph');
 % states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
 
 %% Compare with 3):
-delta1 = ones(1, length(t))*0.02;
-delta2 = (u / radius)*ones(1, length(t));
 
 speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
@@ -311,16 +309,17 @@ legends = {};
 
 for i = 1:length(speeds)
     u = speeds(i);
+    delta2 = (u / radius)*ones(1, length(t));
 
-    C1 = 2*140*deg2rad;
-    C2 = 2*140*deg2rad;
-    states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
+    C1 = 2*140*180/pi;
+    C2 = 2*140*180/pi;
+    states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
 
     % 50 / 50 weight bias:
     W1 = W / 2; W2 = W / 2;
-    C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-    C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-    states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta1);
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
     legends{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', 2);
