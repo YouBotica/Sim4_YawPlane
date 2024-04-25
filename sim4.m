@@ -251,6 +251,7 @@ subplot(2,1,1);
 plot(t, states_arr30(1,:));
 xlabel('time (sec)');
 ylabel('drift angle (rad)');
+grid on;
 % title('yaw rate for 30 mph');
 hold on;
 plot(t, states_arr60(1,:));
@@ -264,6 +265,7 @@ subplot(2,1,2);
 plot(t, states_arr30(2,:));
 xlabel('time (sec)');
 ylabel('yaw rate (rad/sec)');  
+grid on;
 hold on;
 plot(t, states_arr60(2,:));
 title('Yaw rate for 30 and 60 mph');
@@ -272,27 +274,6 @@ legend('30 mph', '60 mph');
 
 %% 6. Add nonlinear tires and assume equal roll moment front and rear, 60/40 biased to the front, and
 % 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
-
-% % 50 / 50 weight bias:
-% W1 = W / 2; W2 = W / 2;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-% % 60 / 40 weight bias:
-% W1 = 0.6*W; W2 = 0.4*W;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_60_40 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
-
-% % 40 / 60 weight bias:
-% W1 = 0.4*W; W2 = 0.6*W;
-% C1 = (0.2*W1 - 0.0000942*(W1^2))*deg2rad; % lbs/rad
-% C2 = (0.2*W2 - 0.0000942*(W2^2))*deg2rad; % lbs/rad
-
-% states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta);
 
 %% Compare with 3):
 
@@ -303,78 +284,79 @@ speeds = speeds*mph2ftps;
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 
-figure(1); % For delta 1
+figure(1); % 50-50 weight bias
+hold on; 
+figure(2); % 60-40 weight bias
 hold on;
-legends = {};
+figure(3);
+hold on;
+
+legends_50_50 = {};
+legends_60_40 = {};
+legends_40_60 = {};
+
 
 for i = 1:length(speeds)
     u = speeds(i);
     delta2 = (u / radius)*ones(1, length(t));
-
+    
+    % Linear tire:
     C1 = 2*140*180/pi;
     C2 = 2*140*180/pi;
     states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
 
+    
     % 50 / 50 weight bias:
+    figure(1);
+
     W1 = W / 2; W2 = W / 2;
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
-    legends{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', 2);
-    legends{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];    
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
 
-    % print u:
-    disp(['u = ' num2str(u*ftps2mph) ' mph']);
 
-    % states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
-    % subplot(4,1,2);
-    % plot(t, states_arr2(2,:));
-    % xlabel('time (sec)');
-    % ylabel('yaw rate (rad/sec)');
-    % title(['turn response for different speeds']);
-    % hold on;
+    % 60 / 40 weight bias:
+    figure(2);
+
+    W1 = 0.6*W; W2 = 0.4*W;
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_60_40 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
+    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_60_40(2,:), 'linewidth', 2);
+    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+
+
+    % 40 / 60 weight bias:
+    figure(3);
+
+    W1 = 0.4*W; W2 = 0.6*W;
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
+    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_40_60(2,:), 'linewidth', 2);
+    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+
+
 end
 
-legend(legends{:});
+figure(1);
+legend(legends_50_50{:});
+hold off;
+figure(2);
+legend(legends_60_40{:});
+hold off;
+figure(3);
+legend(legends_40_60{:});
 hold off;
 
-% Plot the states:
-% figure;
-% subplot(2,1,1);
-% plot(t, states_arr_50_50(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 50/50 weight bias');
-% hold on;
-% plot(t, states_arr_60_40(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 60/40 weight bias');
-% hold on;
-% plot(t, states_arr_40_60(1,:));
-% xlabel('time (sec)');
-% ylabel('drift angle (rad)');
-% title('yaw rate for 40/60 weight bias');
-% legend('50/50', '60/40', '40/60');
-% 
-% subplot(2,1,2);
-% plot(t, states_arr_50_50(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 50/50 weight bias');
-% hold on;
-% plot(t, states_arr_60_40(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 60/40 weight bias');
-% hold on;
-% plot(t, states_arr_40_60(2,:));
-% xlabel('time (sec)');
-% ylabel('yaw rate (rad/sec)');
-% title('yaw rate for 40/60 weight bias');
-% legend('50/50', '60/40', '40/60');
 
 
 %% Try out transfer functions:
