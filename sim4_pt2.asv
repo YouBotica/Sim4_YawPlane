@@ -241,7 +241,7 @@ K_understeerD = K_understeer_wout_roll + K_roll_effectD;
 
 test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
 
-%& Configuration E:
+%% Configuration E:
 eps1 = 0; eps2 = 0;
 desired_radius = 400;
 
@@ -385,12 +385,7 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
 end
 
 
-function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius)
-
-    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-    K_roll_effectI = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
-    
-    K_understeerI = K_understeer_wout_roll + K_roll_effectI;
+function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta)
 
     % Conversion factors:
     deg2rad = pi / 180;
@@ -408,28 +403,35 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     l2 = x1 - x2;
 
     C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    
+    % Calculate our understeering coefficient:
+    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    
+    K_understeer = K_understeer_wout_roll + K_roll_effect;
+
 
     figure;
     subplot(3,1,1);
     xlabel('Time (seconds)');
-    ylabel('Gain []');
-    title(['Steady state gain for ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
+    ylabel('Yaw rate (rad/sec)');
+    title(['Yaw rate response for ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2) ' and Ku= ' num2str(K_understeer)]);
+    hold on;
+
+    subplot(3,1,2);
+    xlabel('Time (seconds)');
+    ylabel('Drift angle (rad)')
+    title(['Drift angle response for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2) ' and Ku= ' num2str(K_understeer)]);
     hold on;
     grid on;
     
-    subplot(3,1,2);
-    xlabel('Time (seconds)');
-    ylabel('Yaw rate (rad/sec)');
-    title(['Yaw rate response for ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
-    hold on;
-    
     subplot(3,1,3);
     xlabel('Time (seconds)');
-    ylabel('Steering angle (rad)');
-    title(['Steering angle step constant input for R= ' num2str(desired_radius) ' ft']);
+    ylabel('Roll (rad)');
+    title(['Roll angle response for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2) ' and Ku= ' num2str(K_understeer)]);
     hold on;
     
-    legend_gains_arr = cell(1, length(speeds));
+    legend_yaw_arr = cell(1, length(speeds));
     legend_yaw_rate_arr = cell(1, length(speeds));
     legend_steering_angle_arr = cell(1, length(speeds));
 
@@ -438,24 +440,21 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     for i = 1:length(speeds)
 
         u = speeds(i);
-        
-        delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+
+        % Simulate:
+        states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
     
         subplot(3,1,1);
-        plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
-        legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_arr(2,:));
+        legend_gains_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
-        delta = (u / desired_radius)*ones(1, length(t));
-    
-        % Simulate:
-        states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
-        plot(t, states_arr2(2,:));
+        plot(t, states_arr(1,:));
         legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
-        plot(t, delta);
-        legend_steering_angle_arr{i} = ['𝛿 = ' num2str(delta(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_arr(4,:));
+        legend_steering_angle_arr{i} = ['Roll angle @ ' num2str(u*ftps2mph) 'mph'];
 
     end
     
