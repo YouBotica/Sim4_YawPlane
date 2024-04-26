@@ -292,7 +292,7 @@ K_roll_effectC = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerC = K_understeer_wout_roll + K_roll_effectC;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 %% Configuration D:
 eps1 = 0; eps2 = 0.04;
@@ -305,7 +305,7 @@ K_roll_effectD = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerD = K_understeer_wout_roll + K_roll_effectD;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 %% Configuration E:
 eps1 = 0; eps2 = 0;
@@ -318,7 +318,7 @@ K_roll_effectE= (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))
 
 K_understeerE = K_understeer_wout_roll + K_roll_effectE;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 %% Configuration F:
 eps1 = 0; eps2 = -0.04;
@@ -331,7 +331,7 @@ K_roll_effectF = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerF = K_understeer_wout_roll + K_roll_effectF;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 %% Configuration G:
 eps1 = -0.04; eps2 = 0.04;
@@ -344,7 +344,7 @@ K_roll_effectG = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerG = K_understeer_wout_roll + K_roll_effectG;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 
 %% Configuration H:
@@ -358,7 +358,7 @@ K_roll_effectH = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerH = K_understeer_wout_roll + K_roll_effectH;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 %% Configuration I:
 eps1 = -0.04; eps2 = -0.04;
@@ -371,7 +371,7 @@ K_roll_effectI = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2)
 
 K_understeerI = K_understeer_wout_roll + K_roll_effectI;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
 
 
@@ -441,7 +441,7 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
     
     % simulation loop:
     for i = 1:length(t)
-        states(1:3) = (states(1:3) + dt*inv(inertia_matrix)*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
+        states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
         states(4) = states(4) + dt*states(3);
         states_arr(:, i) = states;
     end
