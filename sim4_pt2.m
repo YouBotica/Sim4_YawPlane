@@ -447,6 +447,55 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
     end
 end
 
+function states_arr = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c)
+    % Bicycle model using attack angle conventions + roll as a 3rd degree of freedom:
+    % Attack angle is the negative of the slip angle
+    % The sign is embedded in the x1 and x2 distances
+
+    % Ordinary bicycle model:
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
+    
+    % Roll steer effects:
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+
+    % Parallel axis theorem:
+    Ix_steiner = Ix + ms*h*h;
+
+    A = [
+        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
+        -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
+        0, ms*h*u, -D_phi, -K_phi;  
+    ];
+    
+    B = [
+        C1;
+        x1*C1;
+        0; 
+    ];
+
+    inertia_matrix = [
+        m, 0, -ms*h;
+        0, Iz, -ms*h*c;
+        -ms*h, -ms*h*c, Ix_steiner;
+    ];
+    
+    
+    % Discretize using Euler:    
+    
+    % Initial conditions:
+    states = [0; 0; 0; 0];
+    states_arr = zeros(length(states),length(t));
+    
+    % simulation loop:
+    for i = 1:length(t)
+        states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
+        states(4) = states(4) + dt*states(3);
+        states_arr(:, i) = states;
+    end
+end
+
 
 function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta)
 
