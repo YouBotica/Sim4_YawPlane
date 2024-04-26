@@ -14,7 +14,7 @@ Ws = 2700; % lbs
 g = 32.174; % ft/sec^2
 x1 = 3.5; % ft
 x2 = -4.5; % ft = -1.0; % ft
-h = -1.0;
+h = -1.0; % ft
 track_width = 6.0; % ft
 Iz = 40000 / g; % lbs*ft^2
 Ix = 15000 / g; % lbs*ft^2
@@ -298,7 +298,7 @@ legends_40_60 = {};
 
 for i = 1:length(speeds)
     u = speeds(i);
-    delta2 = (u / radius)*ones(1, length(t));
+    delta2 = (u / radius)*ones(1, length(t)); % Update delta to accomplish 400 ft radius
     
     % Linear tire:
     C1 = 2*140*180/pi;
@@ -344,6 +344,130 @@ for i = 1:length(speeds)
     plot(t, states_arr_40_60(2,:), 'linewidth', 2);
     legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
 
+end
+
+
+figure(1);
+legend(legends_50_50{:});
+hold off;
+figure(2);
+legend(legends_60_40{:});
+hold off;
+figure(3);
+legend(legends_40_60{:});
+hold off;
+
+%% Compare with 4-5:
+close all;
+
+line_width = 1;
+
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
+
+% Time domain simulation:
+t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
+
+figure(1); % 50-50 weight bias
+subplot(2,1,1);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)')
+title('Yaw rate time response 50/50 bias');
+subplot(2,1,2);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+title('Drift angle time response 50/50 bias');
+
+figure(2); % 60-40 weight bias
+subplot(2,1,1);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate time response 60/40 bias');
+subplot(2,1,2);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+title('Drift angle time response 60/40 bias');
+
+figure(3);
+subplot(2,1,1);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate time response 40/60 bias');
+
+subplot(2,1,2);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+title('Drift angle time response 40/60 bias');
+
+legends_50_50 = {};
+legends_60_40 = {};
+legends_40_60 = {};
+
+
+for i = 1:length(speeds)
+    u = speeds(i);
+
+    % Linear tire:
+    C1 = 2*140*180/pi;
+    C2 = 2*140*180/pi;
+    states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+
+    % Non-linear tires:
+
+    % 50 / 50 weight bias:
+    figure(1);
+
+    W1 = W / 2; W2 = W / 2;
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+
+    subplot(2,1,1);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_50_50(2,:), 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+
+    subplot(2,1,2);
+    plot(t, states_arr_lin(1,:), '--', 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_50_50(1,:), 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+
+
+    % 60 / 40 weight bias:
+    figure(2);
+
+    W1 = 0.6*W; W2 = 0.4*W;
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_60_40 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+
+    subplot(2,1,1);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
+    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_60_40(2,:), 'linewidth', line_width*2);
+    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+
+
+    % 40 / 60 weight bias:
+    figure(3);
+
+    W1 = 0.4*W; W2 = 0.6*W;
+    C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
+    C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
+    states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
+    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_40_60(2,:), 'linewidth', line_width);
+    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
 
 end
 
@@ -356,7 +480,6 @@ hold off;
 figure(3);
 legend(legends_40_60{:});
 hold off;
-
 
 
 %% Try out transfer functions:
