@@ -91,7 +91,7 @@ for i = 1:length(speeds)
     K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
     K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
 
-    K_understeer = K_understeer_wout_roll + K_roll_effect;
+    % K_understeer = K_understeer_wout_roll + K_roll_effect;
     % 
     % delta2r_gain_arr(i) = (u) / (l2 + u*u*K_understeer);
     
@@ -123,6 +123,8 @@ t_final = 5; % sec
 dt = 0.01; % sec
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
+
+
 figure;
 subplot(3,1,1);
 xlabel('Time (seconds)');
@@ -149,13 +151,18 @@ eps1 = 0; eps2 = -0.03;
 for i = 1:length(speeds)
     u = speeds(i);
 
+    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    
+    delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+
     subplot(3,1,1);
     plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
     
     subplot(3,1,2);
     delta2 = (u / radius)*ones(1, length(t));
-    delta2(i)
+
     % Simulate:
     states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
     plot(t, states_arr2(2,:));
@@ -169,14 +176,140 @@ end
 
 subplot(3,1,1);
 legend(legend_gains_arr);
+grid on;
 
 subplot(3,1,2);
 legend(legend_yaw_rate_arr);
+grid on;
 
 subplot(3,1,3);
 legend(legend_steering_angle_arr);
+grid on;
 
 hold off;
+
+%% 3. Use the steering input calculated in 4) from Part 1 as an input to your simulation. Repeat results
+% for the following combinations of roll steer coefficients:
+
+%% Configuration A: 
+eps1 = 0.04; eps2 = 0.04;
+desired_radius = 400;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectA = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerA = K_understeer_wout_roll + K_roll_effectA;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration B:
+eps1 = 0.04; eps2 = 0.0;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectB = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerB = K_understeer_wout_roll + K_roll_effectB;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration C:
+eps1 = 0.04; eps2 = -0.04;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectC = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerC = K_understeer_wout_roll + K_roll_effectC;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration D:
+eps1 = 0; eps2 = 0.04;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectD = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerD = K_understeer_wout_roll + K_roll_effectD;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration E:
+eps1 = 0; eps2 = 0;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectE= (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerE = K_understeer_wout_roll + K_roll_effectE;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration F:
+eps1 = 0; eps2 = -0.04;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectF = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerF = K_understeer_wout_roll + K_roll_effectF;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration G:
+eps1 = -0.04; eps2 = 0.04;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectG = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerG = K_understeer_wout_roll + K_roll_effectG;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+
+%% Configuration H:
+eps1 = -0.04; eps2 = 0;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectH = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerH = K_understeer_wout_roll + K_roll_effectH;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+%% Configuration I:
+eps1 = -0.04; eps2 = -0.04;
+desired_radius = 400;
+
+C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+K_roll_effectI = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeerI = K_understeer_wout_roll + K_roll_effectI;
+
+test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius);
+
+
+
+
 
 
 %% Test the model here:
@@ -249,6 +382,100 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
         states(4) = states(4) + dt*states(3);
         states_arr(:, i) = states;
     end
+end
+
+
+function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, desired_radius)
+
+    % Conversion factors:
+    deg2rad = pi / 180;
+    rad2deg = 180 / pi;
+    in2ft = 1 / 12;
+    ft2in = 12;
+    mph2ftps = 5280 / 3600;
+    ftps2mph = 3600 / 5280;
+
+    % Ordinary bicycle model setup:
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
+
+    l2 = x1 - x2;
+
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    
+    % Calculate our understeering coefficient:
+    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    
+    K_understeer = K_understeer_wout_roll + K_roll_effect;
+
+
+    figure;
+    subplot(3,1,1);
+    xlabel('Time (seconds)');
+    ylabel('Gain []')
+    title(['Steady state gain for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2) ' and Ku= ' num2str(K_understeer)]);
+    hold on;
+    grid on;
+    
+    subplot(3,1,2);
+    xlabel('Time (seconds)');
+    ylabel('Yaw rate (rad/sec)');
+    title(['Yaw rate response for ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
+    hold on;
+    
+    subplot(3,1,3);
+    xlabel('Time (seconds)');
+    ylabel('Steering angle (rad)');
+    title(['Steering angle input for R= ' num2str(desired_radius) ' ft']);
+    hold on;
+    
+    legend_gains_arr = cell(1, length(speeds));
+    legend_yaw_rate_arr = cell(1, length(speeds));
+    legend_steering_angle_arr = cell(1, length(speeds));
+
+
+    % Simulate for different speeds:
+    for i = 1:length(speeds)
+
+        u = speeds(i);
+        
+        delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+    
+        subplot(3,1,1);
+        plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+        legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
+        
+        subplot(3,1,2);
+        delta = (u / desired_radius)*ones(1, length(t));
+    
+        % Simulate:
+        states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
+        plot(t, states_arr2(2,:));
+        legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
+    
+        subplot(3,1,3);
+        plot(t, delta);
+        legend_steering_angle_arr{i} = ['𝛿 = ' num2str(delta(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+
+    end
+    
+    
+    subplot(3,1,1);
+    legend(legend_gains_arr);
+    grid on;
+    
+    subplot(3,1,2);
+    legend(legend_yaw_rate_arr);
+    grid on;
+
+    subplot(3,1,3);
+    legend(legend_steering_angle_arr);
+    grid on;
+    
+    hold off;
+    
 end
 
 
