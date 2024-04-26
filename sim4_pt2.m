@@ -19,7 +19,7 @@ track_width = 6.0; % ft
 Iz = 40000 / g; % lbs*ft^2
 Ix = 15000 / g; % lbs*ft^2
 c = 0.5; % ft
-dl_phi_f = 8000; % lbs*ft
+dl_phi_f = 8000; % lbs*ft 
 dl_phi_r = 5000; % lbs*ft
 dl_dphi_f = 1000; % lbs*ft
 dl_dphi_r = 500; % lbs*ft
@@ -54,7 +54,7 @@ delta2r_gain_arr = zeros(1, length(speeds));
 
 dt = 0.01;
 t_initial = 0;
-t_final = 2.5;
+t_final = 5;
 
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
@@ -78,19 +78,25 @@ Ca = C1 + C2;
 Cb = x1*C1 + x2*C2;
 Cc = x1*x1*C1 + x2*x2*C2;
 
+% Roll stiffness:
 K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
+% Roll damping:
+D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
 
 
 legend_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
 
-    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-    K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    % 
+    % K_understeer = K_understeer_wout_roll + K_roll_effect;
+    % 
+    % delta2r_gain_arr(i) = (u) / (l2 + u*u*K_understeer);
+    
+    delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
 
-    K_understeer = K_understeer_wout_roll + K_roll_effect;
-
-    delta2r_gain_arr(i) = (u) / (l2 + u*u*K_understeer);
     % plot each gain in an xy plot:
     plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
@@ -107,10 +113,69 @@ hold off;
 % increments of 10 mph from 10 to 120 mph. Compare the results with the steady-state results from
 % 1) above. As before, we are using this step to validate your simulation model.
 
+radius = 400; % ft
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
+
+% Time domain simulation:
+t_initial = 0; % sec
+t_final = 5; % sec
+dt = 0.01; % sec
+t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
+figure;
+subplot(3,1,1);
+xlabel('Time (seconds)');
+ylabel('Gain []');
+hold on;
+grid on;
+
+subplot(3,1,2);
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+hold on;
+
+subplot(3,1,3);
+xlabel('Time (seconds)');
+ylabel('Steering angle (rad)');
+hold on;
+
+legend_gains_arr = cell(1, length(speeds));
+legend_yaw_rate_arr = cell(1, length(speeds));
+legend_steering_angle_arr = cell(1, length(speeds));
+
+eps1 = 0; eps2 = -0.03;
+
+for i = 1:length(speeds)
+    u = speeds(i);
+
+    subplot(3,1,1);
+    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
+    
+    subplot(3,1,2);
+    delta2 = (u / radius)*ones(1, length(t));
+    % Simulate:
+    states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
+    plot(t, states_arr2(2,:));
+    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
+
+    subplot(3,1,3);
+    plot(t, delta2);
+    legend_steering_angle_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+end
 
 
+subplot(3,1,1);
+legend(legend_gains_arr);
 
+subplot(3,1,2);
+legend(legend_yaw_rate_arr);
 
+subplot(3,1,3);
+legend(legend_steering_angle_arr);
+
+hold off;
 
 
 
@@ -119,33 +184,51 @@ hold off;
 
 %% Build Yaw Plane Model with roll:
 
-function states_arr = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta)
-    % Bicycle model using attack angle conventions:
+function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c)
+    % Bicycle model using attack angle conventions + roll as a 3rd degree of freedom:
     % Attack angle is the negative of the slip angle
     % The sign is embedded in the x1 and x2 distances
+
+    % Ordinary bicycle model:
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
     
+    % Roll steer effects:
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+
+    % Parallel axis theorem:
+    Ix_steiner = Ix + ms*h*h;
+
     A = [
-        (-C1 - C2)/(m*u), ((-x1*C1 - x2*C2)/(m*u^2)) - 1;
-        (-x1*C1 - x2*C2)/(Iz), (-(x1^2)*C1 - (x2^2)*C2)/(Iz*u);
+        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
+        -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
+        0, ms*h*u, -D_phi, -K_phi;  
     ];
     
     B = [
         (C1)/(m*u);
         (x1*C1)/Iz;
+        0; 
+    ];
+
+    inertia_matrix = [
+        m, 0, -ms*h;
+        0, Iz, -ms*h*c;
+        -ms*h, -ms*h*c, Ix_steiner;
     ];
     
     
     % Discretize using Euler:    
-    A_dis = eye(2) + dt * A;
-    B_dis = dt * B;
     
     % Initial conditions:
-    states = [0; 0];
-    states_arr = zeros(2,length(t));
+    states = [0; 0; 0; 0];
+    states_arr = zeros(length(states),length(t));
     
     % simulation loop:
     for i = 1:length(t)
-        states = A_dis * states + B_dis * delta(i);
+        states(1:3) = states(1:3) + dt*(inv(inertia_matrix)*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
+        states(4) = states(4) + dt*states(3);
         states_arr(:, i) = states;
     end
 end
