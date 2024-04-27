@@ -259,7 +259,6 @@ legend('Original input signal', 'Modified input signal');
 
 %% Configuration A: 
 eps1 = 0.04; eps2 = 0.04;
-desired_radius = 400;
 
 K_understeer_wout_roll = (-m*Cb/(C1*C2*l2));
 K_roll_effectA = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
@@ -270,7 +269,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration B:
 eps1 = 0.04; eps2 = 0.0;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -283,7 +281,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration C:
 eps1 = 0.04; eps2 = -0.04;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -296,7 +293,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration D:
 eps1 = 0; eps2 = 0.04;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -309,7 +305,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration E:
 eps1 = 0; eps2 = 0;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -322,7 +317,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration F:
 eps1 = 0; eps2 = -0.04;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -335,7 +329,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration G:
 eps1 = -0.04; eps2 = 0.04;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -349,7 +342,6 @@ test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2
 
 %% Configuration H:
 eps1 = -0.04; eps2 = 0;
-desired_radius = 400;
 
 C_phi1 = eps1*C1; C_phi2 = eps2*C2;
 
@@ -373,9 +365,61 @@ K_understeerI = K_understeer_wout_roll + K_roll_effectI;
 
 test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
 
+%% Part 3:
+% Return to the baseline case of 𝜖𝑓 = 0; 𝜖𝑟 = −0.03. Add the nonlinear tire model. You will have to
+% calculate the tire loads at each time step, knowing that the moments from roll stiffness and roll
+% damping on the sprung mass are reacted by vertical forces through the contact patch of the tires,
+% and add to or subtract from the static tire loads. Compare and interpret your results above with
+% the corresponding results from (Part 2: 3-DoF Vehicle (Linear)).
+
+eps1 = 0; eps2 = -0.03;
+
+% C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+
+test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta, W)
+
+%% Test non-linear model:
+
+% Simulate:
+[W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_mod, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+
+% Plot the results:
+figure;
+subplot(4,1,1);
+plot(t, states_arr(2,:));
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate response for ε1= 0 and ε2= -0.03');
+grid on;
+
+subplot(4,1,2);
+plot(t, states_arr(1,:) / u);
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+title('Drift angle response for ε1= 0, ε2= -0.03');
+grid on;
+
+subplot(4,1,3);
+plot(t, states_arr(4,:));
+xlabel('Time (seconds)');
+ylabel('Roll (rad)');
+title('Roll angle response for ε1= 0, ε2= -0.03');
+grid on;
+
+subplot(4,1,4);
+plot(t, delta_mod);
+xlabel('Time (seconds)');
+ylabel('Steering angle (rad)');
+title('Steering angle input');
+grid on;
 
 
-%% Test the model here:
+% test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi,
+% eps1, eps2, Ix, c, delta_mod); TODO
+
+
+
+%% Test linear model here:
 
 t_initial = 0;
 t_final = 5;
@@ -442,38 +486,18 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
     % simulation loop:
     for i = 1:length(t)
         states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
-        states(4) = states(4) + dt*states(3);
+        states(4) = states(4) + dt*states(3); % Roll = Roll_prev + dt*(dRoll/dt)
         states_arr(:, i) = states;
     end
 end
 
-function states_arr = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c)
+function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W)
     % Bicycle model using attack angle conventions + roll as a 3rd degree of freedom:
     % Attack angle is the negative of the slip angle
     % The sign is embedded in the x1 and x2 distances
 
-    % Ordinary bicycle model:
-    Ca = C1 + C2;
-    Cb = x1*C1 + x2*C2;
-    Cc = x1*x1*C1 + x2*x2*C2;
-    
-    % Roll steer effects:
-    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
-
     % Parallel axis theorem:
     Ix_steiner = Ix + ms*h*h;
-
-    A = [
-        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
-        -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
-        0, ms*h*u, -D_phi, -K_phi;  
-    ];
-    
-    B = [
-        C1;
-        x1*C1;
-        0; 
-    ];
 
     inertia_matrix = [
         m, 0, -ms*h;
@@ -481,15 +505,63 @@ function states_arr = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz
         -ms*h, -ms*h*c, Ix_steiner;
     ];
     
-    
-    % Discretize using Euler:    
-    
     % Initial conditions:
     states = [0; 0; 0; 0];
     states_arr = zeros(length(states),length(t));
+
+    % Weight arrays:
+    W1r_arr = zeros(length(t));
+    W1l_arr = zeros(length(t));
+    W2r_arr = zeros(length(t));
+    W2l_arr = zeros(length(t));
     
-    % simulation loop:
+    % simulation loop:[W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr]
     for i = 1:length(t)
+        
+        W1 = W/2; W2 = W/2; % Assuming 50/50 weight bias:
+        % Weight transfer:
+        W1r = (W1/2) + (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+        W1l = (W1/2) - (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+
+        W2r = (W2/2) + (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+        W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+        
+        % Store the weights to analyze weight transfer over time:
+        W1r_arr(i) = W1r;
+        W1l_arr(i) = W1l;
+        W2r_arr(i) = W2r;
+        W2l_arr(i) = W2l;
+
+        % Non-linear tires:
+        C1r = 0.2*W1r - 0.0000942*W1r*W1r;
+        C1l = 0.2*W1l - 0.0000942*W1l*W1l;
+
+        C1 = C1r + C1l;
+
+        C2r = 0.2*W2r - 0.0000942*W2r*W2r;
+        C2l = 0.2*W2l - 0.0000942*W2l*W2l;
+
+        C2 = C2r + C2l;
+
+        % Roll steer effects:
+        C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    
+        % Bicycle model with roll:
+        Ca = C1 + C2;
+        Cb = x1*C1 + x2*C2;
+        Cc = x1*x1*C1 + x2*x2*C2;
+
+        A = [
+        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
+        -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
+        0, ms*h*u, -D_phi, -K_phi;  
+        ];
+    
+        B = [
+            C1;
+            x1*C1;
+            0; 
+        ];
         states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
         states(4) = states(4) + dt*states(3);
         states_arr(:, i) = states;
@@ -558,11 +630,11 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     
         subplot(3,1,1);
         plot(t, states_arr(2,:));
-        legend_yaw_rate_arr{i} = ['Yaw angle @ ' num2str(u*ftps2mph) 'mph'];
+        legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
         plot(t, states_arr(1,:) / u);
-        legend_drift_angle_arr{i} = ['Drift rate @ ' num2str(u*ftps2mph) 'mph'];
+        legend_drift_angle_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
         plot(t, states_arr(4,:));
@@ -587,6 +659,176 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     
 end
 
+
+
+function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta, W)
+
+    % Conversion factors:
+    deg2rad = pi / 180;
+    rad2deg = 180 / pi;
+    in2ft = 1 / 12;
+    ft2in = 12;
+    mph2ftps = 5280 / 3600;
+    ftps2mph = 3600 / 5280;
+
+    % % Ordinary bicycle model setup:
+    % Ca = C1 + C2;
+    % Cb = x1*C1 + x2*C2;
+    % Cc = x1*x1*C1 + x2*x2*C2;
+    % 
+    % l2 = x1 - x2;
+    % 
+    % C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    
+    % Calculate our understeering coefficient:
+    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    % 
+    % K_understeer = K_understeer_wout_roll + K_roll_effect;
+
+
+    figure(1);
+    subplot(3,1,1);
+    xlabel('Time (seconds)');
+    ylabel('Yaw rate (rad/sec)');
+    title(['Yaw rate response for ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
+    hold on;
+
+    subplot(3,1,2);
+    xlabel('Time (seconds)');
+    ylabel('Drift angle (rad)')
+    title(['Drift angle response for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
+    hold on;
+    grid on;
+    
+    subplot(3,1,3);
+    xlabel('Time (seconds)');
+    ylabel('Roll (rad)');
+    title(['Roll angle response for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
+    hold on;
+
+    figure(2);
+    subplot(4,1,1);
+    xlabel('Time (seconds)');
+    ylabel('Front left weight transfer (lbs)');
+    title(['Left weight transfer with ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
+    hold on;
+
+    subplot(4,1,2);
+    xlabel('Time (seconds)');
+    ylabel('Front right weight transfer (lbs)')
+    title(['Front right weight transfer for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
+    hold on;
+    grid on;
+    
+    subplot(4,1,3);
+    xlabel('Time (seconds)');
+    ylabel('Rear left weight transfer (lbs)');
+    title(['Rear left weight transfer for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
+    hold on;
+
+    subplot(4,1,4);
+    xlabel('Time (seconds)');
+    ylabel('Rear right weight transfer (lbs)')
+    title(['Rear right weight transfer ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
+    hold on;
+    grid on;
+    
+    legend_yaw_rate_arr = cell(1, length(speeds));
+    legend_drift_angle_arr = cell(1, length(speeds));
+    legend_roll_angle_arr = cell(1, length(speeds));
+
+    legend_W1l_arr = cell(1, length(speeds));
+    legend_W1r_arr = cell(1, length(speeds));
+    legend_W2l_arr = cell(1, length(speeds));
+    legend_W2r_arr = cell(1, length(speeds));
+
+
+    % Simulate for different speeds:
+    for i = 1:length(speeds)
+
+        u = speeds(i);
+
+        % Simulate:
+        [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+        
+        % States time response plots:
+
+        figure(1);
+        subplot(3,1,1);
+        plot(t, states_arr(2,:));
+        legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
+        
+        subplot(3,1,2);
+        plot(t, states_arr(1,:) / u);
+        legend_drift_angle_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
+    
+        subplot(3,1,3);
+        plot(t, states_arr(4,:));
+        legend_roll_angle_arr{i} = ['Roll angle @ ' num2str(u*ftps2mph) 'mph'];
+
+
+        % Weight transfer time response plots:
+
+        figure(2);
+        subplot(4,1,1);
+        plot(t, W1l_arr);
+        legend_W1l_arr{i} = ['Front left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        
+        subplot(4,1,2);
+        plot(t, W1r_arr);
+        legend_W1r_arr{i} = ['Front right weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+    
+        subplot(4,1,3);
+        plot(t, W2l_arr);
+        legend_W2l_arr{i} = ['Rear left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+
+        subplot(4,1,4);
+        plot(t, W2r_arr);
+        legend_W2r_arr{i} = ['Rear right weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+
+    end
+    
+    % First figure:
+    figure(1);
+    subplot(3,1,1);
+    legend(legend_yaw_rate_arr);
+    grid on;
+    hold off;
+    
+    subplot(3,1,2);
+    legend(legend_drift_angle_arr);
+    grid on;
+    hold off;
+
+    subplot(3,1,3);
+    legend(legend_roll_angle_arr);
+    grid on;
+    hold off;
+    
+    % Second figure:
+    figure(2);
+    subplot(4,1,1);
+    legend(legend_W1l_arr);
+    grid on;
+    hold off;
+    
+    subplot(4,1,2);
+    legend(legend_W1r_arr);
+    grid on;
+    hold off;
+
+    subplot(4,1,3);
+    legend(legend_W2l_arr);
+    grid on;
+    hold off;
+
+    subplot(4,1,4);
+    legend(legend_W2r_arr);
+    grid on;
+    hold off;
+    
+end
 
 function delta = slope_it_down(t, dt, at, delta, left_bound, right_bound, slope)
 
