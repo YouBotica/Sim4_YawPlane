@@ -118,23 +118,26 @@ speeds = speeds*mph2ftps;
 
 % Time domain simulation:
 t_initial = 0; % sec
-t_final = 2.5; % sec
+t_final = 5; % sec
 dt = 0.01; % sec
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 figure;
 subplot(3,1,1);
+title('Steady state gains at different speeds');
 xlabel('Time (seconds)');
 ylabel('Gain []');
 hold on;
 grid on;
 
 subplot(3,1,2);
+title('Yaw rate response at different speeds');
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
 hold on;
 
 subplot(3,1,3);
+title('Steering angle input at different speeds');
 xlabel('Time (seconds)');
 ylabel('Steering angle (rad)');
 hold on;
@@ -147,14 +150,15 @@ for i = 1:length(speeds)
     u = speeds(i);
 
     subplot(3,1,1);
-    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
     
     subplot(3,1,2);
-    delta2 = (u / radius)*ones(1, length(t));
+    delta2 = (1 / radius)*(l2 + (u*u*K_understeer))*ones(1, length(t));
     states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr2(2,:));
-    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(1))];
+    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
 
     subplot(3,1,3);
     plot(t, delta2);
@@ -164,12 +168,15 @@ end
 
 subplot(3,1,1);
 legend(legend_gains_arr);
+grid on;
 
 subplot(3,1,2);
 legend(legend_yaw_rate_arr);
+grid on;
 
 subplot(3,1,3);
 legend(legend_steering_angle_arr);
+grid on;
 
 hold off;
 
@@ -199,7 +206,7 @@ delta(1, 7/dt:length(t)) = 0;
 figure;
 plot(t, delta);
 grid on;
-title('steering input with no rate saturation');
+title('Steering input with no rate saturation');
 xlabel('time (sec)');
 ylabel('delta (rad)');
 
@@ -233,7 +240,7 @@ plot(t, delta);
 hold on;
 plot(t, delta_mod, 'r');
 grid on;
-title('steering input with smoothed angle transitions');
+title('Steering input with smoothed angle transitions');
 xlabel('time (sec)');
 ylabel('delta (rad)');
 legend('Original input signal', 'Modified input signal');
