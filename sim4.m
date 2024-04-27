@@ -55,16 +55,17 @@ u60 = 60*mph2ftps;
 A30 = [
     (-C1 - C2)/(m*u30), (((-x1*C1 - x2*C2)/(m*u30^2)) - 1);
     (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u30);
-];
+]
 
 A60 = [
     (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60^2)) - 1;
     (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u60);
-];
+]
 
 
-eg_30mph = eig(A30);
-eg_60mph = eig(A60);
+
+eg_30mph = eig(A30)
+eg_60mph = eig(A60)
 
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
@@ -80,25 +81,28 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 figure; 
 hold on;
 grid on;
+title('Yaw rate steady state gains for different speeds')
 xlabel('Time (seconds)');
 ylabel('Gain (𝑟/𝛿)');
 xlim([0, 5]);
 ylim([0, 10.0]);
 
 K_understeer = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+u_char = sqrt((x1-x2)/K_understeer);
 
 legend_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
     delta2r_gain_arr(i) = u / (l2 + u*u*K_understeer);
+
     % plot each gain in an xy plot:
-    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
     hold on;
 end
 
-legend(legend_arr{:});
-
+legend(legend_arr{:}, 'Location', 'eastoutside');
 hold off;
 
 

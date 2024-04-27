@@ -380,8 +380,12 @@ test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, ep
 
 %% Test non-linear model:
 
+% Generate a step test input for the steering angle delta:
+delta_test = zeros(1, length(t));
+delta_test(1, length(t)/4:length(t)) = 0.01;
+
 % Simulate:
-[W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_mod, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+[W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_test, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
 
 % Plot the results:
 figure;
@@ -393,6 +397,7 @@ title('Yaw rate response for ε1= 0 and ε2= -0.03');
 grid on;
 
 subplot(4,1,2);
+delta_test = zeros(1, length(t));
 plot(t, states_arr(1,:) / u);
 xlabel('Time (seconds)');
 ylabel('Drift angle (rad)');
@@ -427,7 +432,7 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 % Generate a step input for the steering angle delta:
 delta_test = zeros(1, length(t));
-delta_test(1, length(t)/4:length(t)) = 0.1;
+delta_test(1, length(t)/4:length(t)) = 0.01;
 
 states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_test, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
 
@@ -520,11 +525,11 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
         
         W1 = W/2; W2 = W/2; % Assuming 50/50 weight bias:
         % Weight transfer:
-        W1r = (W1/2) + (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
-        W1l = (W1/2) - (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+        W1r = (W1/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
+        W1l = (W1/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
 
-        W2r = (W2/2) + (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
-        W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4)*sign(states(4)) - D_phi*states(3)*sign(states(3)));
+        W2r = (W2/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
+        W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
         
         % Store the weights to analyze weight transfer over time:
         W1r_arr(i) = W1r;
@@ -552,9 +557,9 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
         Cc = x1*x1*C1 + x2*x2*C2;
 
         A = [
-        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
-        -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
-        0, ms*h*u, -D_phi, -K_phi;  
+            -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
+            -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
+            0, ms*h*u, -D_phi, -K_phi;  
         ];
     
         B = [
