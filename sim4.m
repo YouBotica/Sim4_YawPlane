@@ -368,17 +368,24 @@ figure(1);
 legend(legends_50_50{:});
 % Add text to plot with understeering coefficient and characteristic speed:
 text(4.0, 4.0, ['K_{understeer} = ' num2str(K_understeer_50_50) ' u_{char} = ' num2str(u_char_50_50)], 'FontSize', 16);
+grid on;
 hold off;
 figure(2);
 legend(legends_60_40{:});
 % Add text to plot with understeering coefficient and characteristic speed:
 text(4.0, 4.0, ['K_{understeer} = ' num2str(K_understeer_60_40) ' u_{char} = ' num2str(u_char_60_40)], 'FontSize', 16);
+grid on;
 hold off;
 figure(3);
 legend(legends_40_60{:});
 % Add text to plot with understeering coefficient and critical speed:
 text(4.0, 1.5e9, ['K_{understeer} = ' num2str(K_understeer_40_60) ' u_{critical} = ' num2str(u_critical_40_60)], 'FontSize', 16);
+grid on;
 hold off;
+
+% Create a table where the leftmost column is the speed, then understeer coefficient, then characteristic speed:
+table = [["50/50 bias",  "60/40 bias", "40/60 bias"]', [K_understeer_50_50, K_understeer_60_40, K_understeer_40_60]', [u_char_50_50, u_char_60_40, u_critical_40_60]']
+
 
 %% Compare with 4-5:
 close all;
@@ -429,9 +436,13 @@ xlabel('Time (seconds)');
 ylabel('Drift angle (rad)');
 title('Drift angle time response 40/60 bias');
 
-legends_50_50 = {};
-legends_60_40 = {};
-legends_40_60 = {};
+legends_50_50_r = {};
+legends_60_40_r = {};
+legends_40_60_r = {};
+
+legends_50_50_beta = {};
+legends_60_40_beta = {};
+legends_40_60_beta = {};
 
 
 for i = 1:length(speeds)
@@ -454,15 +465,15 @@ for i = 1:length(speeds)
 
     subplot(2,1,1);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_50_50_r{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', line_width);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+    legends_50_50_r{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
 
     subplot(2,1,2);
     plot(t, states_arr_lin(1,:), '--', 'linewidth', line_width);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_50_50_beta{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(1,:), 'linewidth', line_width);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+    legends_50_50_beta{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];
 
 
     % 60 / 40 weight bias:
@@ -475,9 +486,15 @@ for i = 1:length(speeds)
 
     subplot(2,1,1);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
-    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_60_40_r{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_60_40(2,:), 'linewidth', line_width*2);
-    legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+    legends_60_40_r{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+
+    subplot(2,1,2);
+    plot(t, states_arr_lin(1,:), '--', 'linewidth', line_width);
+    legends_60_40_beta{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_60_40(1,:), 'linewidth', line_width);
+    legends_60_40_beta{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
 
 
     % 40 / 60 weight bias:
@@ -487,21 +504,47 @@ for i = 1:length(speeds)
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_40_60 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+    
+    subplot(2,1,1);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
-    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_40_60_r{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_40_60(2,:), 'linewidth', line_width);
-    legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+    legends_40_60_r{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+
+    subplot(2,1,2);
+    plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
+    legends_40_60_beta{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_40_60(2,:), 'linewidth', line_width);
+    legends_40_60_beta{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+
 
 end
 
 figure(1);
-legend(legends_50_50{:});
+subplot(2,1,1);
+legend(legends_50_50_r{:});
+grid on;
+subplot(2,1,2);
+legend(legends_50_50_beta{:});
+grid on;
 hold off;
+
 figure(2);
-legend(legends_60_40{:});
+subplot(2,1,1);
+legend(legends_60_40_r{:});
+grid on;
+subplot(2,1,2);
+legend(legends_60_40_beta{:});
+grid on;
 hold off;
+
 figure(3);
-legend(legends_40_60{:});
+subplot(2,1,1);
+legend(legends_40_60_r{:});
+grid on;
+subplot(2,1,2);
+legend(legends_40_60_beta{:});
+grid on;
 hold off;
 
 
