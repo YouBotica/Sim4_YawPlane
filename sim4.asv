@@ -14,7 +14,7 @@ Ws = 2700; % lbs
 g = 32.174; % ft/sec^2
 x1 = 3.5; % ft
 x2 = -4.5; % ft = -1.0; % ft
-h = -1.0;
+h = -1.0; % ft
 track_width = 6.0; % ft
 Iz = 40000 / g; % lbs*ft^2
 Ix = 15000 / g; % lbs*ft^2
@@ -55,16 +55,17 @@ u60 = 60*mph2ftps;
 A30 = [
     (-C1 - C2)/(m*u30), (((-x1*C1 - x2*C2)/(m*u30^2)) - 1);
     (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u30);
-];
+]
 
 A60 = [
     (-C1 - C2)/(m*u60), ((-x1*C1 - x2*C2)/(m*u60^2)) - 1;
     (-x1*C1 - x2*C2)/(Iz), (-x1*x1*C1 - x2*x2*C2)/(Iz*u60);
-];
+]
 
 
-eg_30mph = eig(A30);
-eg_60mph = eig(A60);
+
+eg_30mph = eig(A30)
+eg_60mph = eig(A60)
 
 %%  2. Using the steady-state yaw rate response, construct plots from 0 to 120 mph (i.e. 𝑟/𝛿 ) for various
 % speeds, every 10 mph or so.
@@ -80,25 +81,28 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 figure; 
 hold on;
 grid on;
+title('Yaw rate steady state gains for different speeds')
 xlabel('Time (seconds)');
 ylabel('Gain (𝑟/𝛿)');
 xlim([0, 5]);
 ylim([0, 10.0]);
 
 K_understeer = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+u_char = sqrt((x1-x2)/K_understeer);
 
 legend_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
     delta2r_gain_arr(i) = u / (l2 + u*u*K_understeer);
+
     % plot each gain in an xy plot:
-    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
     hold on;
 end
 
-legend(legend_arr{:});
-
+legend(legend_arr{:}, 'Location', 'eastoutside');
 hold off;
 
 
@@ -114,23 +118,26 @@ speeds = speeds*mph2ftps;
 
 % Time domain simulation:
 t_initial = 0; % sec
-t_final = 2.5; % sec
+t_final = 5; % sec
 dt = 0.01; % sec
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 figure;
 subplot(3,1,1);
+title('Steady state gains at different speeds');
 xlabel('Time (seconds)');
 ylabel('Gain []');
 hold on;
 grid on;
 
 subplot(3,1,2);
+title('Yaw rate response at different speeds');
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
 hold on;
 
 subplot(3,1,3);
+title('Steering angle input at different speeds');
 xlabel('Time (seconds)');
 ylabel('Steering angle (rad)');
 hold on;
@@ -143,14 +150,15 @@ for i = 1:length(speeds)
     u = speeds(i);
 
     subplot(3,1,1);
-    plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
+    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
     legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
     
     subplot(3,1,2);
-    delta2 = (u / radius)*ones(1, length(t));
+    delta2 = (1 / radius)*(l2 + (u*u*K_understeer))*ones(1, length(t));
     states_arr2 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr2(2,:));
-    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(1))];
+    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
 
     subplot(3,1,3);
     plot(t, delta2);
@@ -160,12 +168,15 @@ end
 
 subplot(3,1,1);
 legend(legend_gains_arr);
+grid on;
 
 subplot(3,1,2);
 legend(legend_yaw_rate_arr);
+grid on;
 
 subplot(3,1,3);
 legend(legend_steering_angle_arr);
+grid on;
 
 hold off;
 
@@ -195,7 +206,7 @@ delta(1, 7/dt:length(t)) = 0;
 figure;
 plot(t, delta);
 grid on;
-title('steering input with no rate saturation');
+title('Steering input with no rate saturation');
 xlabel('time (sec)');
 ylabel('delta (rad)');
 
@@ -229,7 +240,7 @@ plot(t, delta);
 hold on;
 plot(t, delta_mod, 'r');
 grid on;
-title('steering input with smoothed angle transitions');
+title('Steering input with smoothed angle transitions');
 xlabel('time (sec)');
 ylabel('delta (rad)');
 legend('Original input signal', 'Modified input signal');
@@ -276,6 +287,7 @@ legend('30 mph', '60 mph');
 % 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
 
 %% Compare with 3):
+close all;
 
 speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
@@ -308,15 +320,16 @@ for i = 1:length(speeds)
     
     % 50 / 50 weight bias:
     figure(1);
-
     W1 = W / 2; W2 = W / 2;
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_50_50{end+1} = ['Yaw rate @' num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', 2);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear tires and 50-50 wb'];
+    K_understeer_50_50 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_char_50_50 = sqrt(l2/K_understeer_50_50);
 
 
     % 60 / 40 weight bias:
@@ -330,6 +343,8 @@ for i = 1:length(speeds)
     legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_60_40(2,:), 'linewidth', 2);
     legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+    K_understeer_60_40 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_char_60_40 = sqrt(l2/K_understeer_60_40);
 
 
     % 40 / 60 weight bias:
@@ -343,12 +358,17 @@ for i = 1:length(speeds)
     legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_40_60(2,:), 'linewidth', 2);
     legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+    K_understeer_40_60 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_char_40_60 = sqrt(l2/-K_understeer_40_40);
 
 end
 
 
 figure(1);
 legend(legends_50_50{:});
+% Add a text to figure 1 with the understeering coefficient and the characteristic speed. It should only be 2 numbers
+text(4.0, 4.0, ['K_{understeer} = ' num2str(K_understeer_50_50(1)) ' u_{char} = ' num2str(u_char_50_50(1))], 'FontSize', 16);
+
 hold off;
 figure(2);
 legend(legends_60_40{:});
@@ -374,23 +394,37 @@ subplot(2,1,1);
 hold on; 
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)')
+title('Yaw rate time response 50/50 bias');
 subplot(2,1,2);
 hold on; 
 xlabel('Time (seconds)');
-ylabel('Drift angle (rad)')
+ylabel('Drift angle (rad)');
+title('Drift angle time response 50/50 bias');
 
 figure(2); % 60-40 weight bias
+subplot(2,1,1);
 hold on; 
 xlabel('Time (seconds)');
-ylabel('Yaw rate (rad/sec)')
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate time response 60/40 bias');
 subplot(2,1,2);
 hold on; 
 xlabel('Time (seconds)');
-ylabel('Drift angle (rad)')
+ylabel('Drift angle (rad)');
+title('Drift angle time response 60/40 bias');
 
 figure(3);
-hold on;
+subplot(2,1,1);
+hold on; 
 xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate time response 40/60 bias');
+
+subplot(2,1,2);
+hold on; 
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+title('Drift angle time response 40/60 bias');
 
 legends_50_50 = {};
 legends_60_40 = {};
@@ -414,9 +448,17 @@ for i = 1:length(speeds)
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+
+    subplot(2,1,1);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
     legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+
+    subplot(2,1,2);
+    plot(t, states_arr_lin(1,:), '--', 'linewidth', line_width);
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    plot(t, states_arr_50_50(1,:), 'linewidth', line_width);
     legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
 
 
@@ -427,6 +469,8 @@ for i = 1:length(speeds)
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_60_40 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
+
+    subplot(2,1,1);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', line_width);
     legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_60_40(2,:), 'linewidth', line_width*2);

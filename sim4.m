@@ -287,6 +287,7 @@ legend('30 mph', '60 mph');
 % 40/60 biased to the rear. Compare your biased results to the results of 3)-5) with linear tires.
 
 %% Compare with 3):
+close all;
 
 speeds = linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
@@ -319,15 +320,16 @@ for i = 1:length(speeds)
     
     % 50 / 50 weight bias:
     figure(1);
-
     W1 = W / 2; W2 = W / 2;
     C1 = 2*(0.2*W1 - 0.0000942*(W1^2))*180/pi; % lbs/rad
     C2 = 2*(0.2*W2 - 0.0000942*(W2^2))*180/pi; % lbs/rad
     states_arr_50_50 = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2);
     plot(t, states_arr_lin(2,:), '--', 'linewidth', 2);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
+    legends_50_50{end+1} = ['Yaw rate @' num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_50_50(2,:), 'linewidth', 2);
-    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 50-50 wb'];  
+    legends_50_50{end+1} = [num2str(u*ftps2mph) ' mph with non-linear tires and 50-50 wb'];
+    K_understeer_50_50 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_char_50_50 = sqrt(l2/K_understeer_50_50);
 
 
     % 60 / 40 weight bias:
@@ -341,6 +343,8 @@ for i = 1:length(speeds)
     legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_60_40(2,:), 'linewidth', 2);
     legends_60_40{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 60-40 wb']; 
+    K_understeer_60_40 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_char_60_40 = sqrt(l2/K_understeer_60_40);
 
 
     % 40 / 60 weight bias:
@@ -354,18 +358,26 @@ for i = 1:length(speeds)
     legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with linear tires'];
     plot(t, states_arr_40_60(2,:), 'linewidth', 2);
     legends_40_60{end+1} = [num2str(u*ftps2mph) ' mph with non-linear and 40-60 wb']; 
+    K_understeer_40_60 = -m*(x1*C1 + x2*C2)/(C1*C2*l2);
+    u_critical_40_60 = sqrt(l2/-K_understeer_40_60);
 
 end
 
 
 figure(1);
 legend(legends_50_50{:});
+% Add text to plot with understeering coefficient and characteristic speed:
+text(4.0, 4.0, ['K_{understeer} = ' num2str(K_understeer_50_50) ' u_{char} = ' num2str(u_char_50_50)], 'FontSize', 16);
 hold off;
 figure(2);
 legend(legends_60_40{:});
+% Add text to plot with understeering coefficient and characteristic speed:
+text(4.0, 4.0, ['K_{understeer} = ' num2str(K_understeer_60_40) ' u_{char} = ' num2str(u_char_60_40)], 'FontSize', 16);
 hold off;
 figure(3);
 legend(legends_40_60{:});
+% Add text to plot with understeering coefficient and critical speed:
+text(4.0, 1.5e9, ['K_{understeer} = ' num2str(K_understeer_40_60) ' u_{critical} = ' num2str(u_critical_40_60)], 'FontSize', 16);
 hold off;
 
 %% Compare with 4-5:
