@@ -367,7 +367,7 @@ end
 figure(1);
 legend(legends_50_50{:});
 % Add text to plot with understeering coefficient and characteristic speed:
-text(4.0, 0.7, ['K_{understeer} = ' num2str(K_understeer_50_50) ' u_{char} = ' num2str(u_char_50_50)], 'FontSize', 16);
+text(4.0, 0.7, ['K_{understeer} = ' num2str(K_understeer_50_50) ' u_{char}= ' num2str(u_char_50_50) ' mph'], 'FontSize', 16);
 title('Yaw rate response for 50/50 weight bias');
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
@@ -376,7 +376,7 @@ hold off;
 figure(2);
 legend(legends_60_40{:});
 % Add text to plot with understeering coefficient and characteristic speed:
-text(4.0, 0.7, ['K_{understeer} = ' num2str(K_understeer_60_40) ' u_{char} = ' num2str(u_char_60_40)], 'FontSize', 16);
+text(4.0, 0.7, ['K_{understeer} = ' num2str(K_understeer_60_40) ' u_{char} = ' num2str(u_char_60_40) ' mph'], 'FontSize', 16);
 title('Yaw rate response for 60/40 weight bias');
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
@@ -386,7 +386,7 @@ figure(3);
 ylim([0, 1.0])
 legend(legends_40_60{:});
 % Add text to plot with understeering coefficient and critical speed:
-text(4.0, 0.8, ['K_{understeer} = ' num2str(K_understeer_40_60) ' u_{critical} = ' num2str(u_critical_40_60)], 'FontSize', 16);
+text(4.0, 0.8, ['K_{understeer} = ' num2str(K_understeer_40_60) ' u_{critical} = ' num2str(u_critical_40_60) ' mph'], 'FontSize', 16);
 title('Yaw rate response for 40/60 weight bias');
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
