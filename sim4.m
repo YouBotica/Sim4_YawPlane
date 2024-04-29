@@ -462,7 +462,7 @@ for i = 1:length(speeds)
 
     % Linear tire:
     C1 = 2*140*180/pi;
-    C2 = 2*140*180/pi;
+    C2 = 2*140*180/pi
     states_arr_lin = simulate_bike_2dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod);
 
     % Non-linear tires:
@@ -546,34 +546,34 @@ end
 
 figure(1);
 subplot(2,1,1);
-title(['Yaw rate time response with 50/50 bias - K_u = ' num2str(K_understeer_50_50_nlar) ' | u_{char} ' num2str(u_char_50_50)]);
+title(['Yaw rate time response with 50/50 bias - K_u = ' num2str(K_understeer_50_50_nlar) ' | u_{char} ' num2str(u_char_50_50) ' mph']);
 legend(legends_50_50_r{:});
 grid on;
 subplot(2,1,2);
-title(['Drift angle time response with 50/50 bias - K_u = ' num2str(K_understeer_50_50_nlar) ' | u_{char} ' num2str(u_char_50_50)]);
+title(['Drift angle time response with 50/50 bias - K_u = ' num2str(K_understeer_50_50_nlar) ' | u_{char} ' num2str(u_char_50_50) ' mph']);
 legend(legends_50_50_beta{:});
 grid on;
 hold off;
 
 figure(2);
 subplot(2,1,1);
-title(['Yaw rate time response with 60/40 bias - K_u = ' num2str(K_understeer_60_40_nlar) ' | u_{char} ' num2str(u_char_60_40)]);
+title(['Yaw rate time response with 60/40 bias - K_u = ' num2str(K_understeer_60_40_nlar) ' | u_{char} ' num2str(u_char_60_40) ' mph']);
 legend(legends_60_40_r{:});
 grid on;
 subplot(2,1,2);
-title(['Drift angle time response with 60/40 bias - K_u = ' num2str(K_understeer_60_40_nlar) ' | u_{char} ' num2str(u_char_60_40)]);
+title(['Drift angle time response with 60/40 bias - K_u = ' num2str(K_understeer_60_40_nlar) ' | u_{char} ' num2str(u_char_60_40) ' mph']);
 legend(legends_60_40_beta{:});
 grid on;
 hold off;
 
 figure(3);
 subplot(2,1,1);
-title(['Yaw rate time response with 40/60 bias - K_u = ' num2str(K_understeer_40_60_nlar) ' | u_{char} ' num2str(u_critical_40_60)]);
+title(['Yaw rate time response with 40/60 bias - K_u = ' num2str(K_understeer_40_60_nlar) ' | u_{char} ' num2str(u_critical_40_60) ' mph']);
 legend(legends_40_60_r{:});
 ylim([-10, 10]);
 grid on;
 subplot(2,1,2);
-title(['Drift angle time response with 40/60 bias - K_u = ' num2str(K_understeer_40_60_nlar) ' | u_{char} ' num2str(u_critical_40_60)]);
+title(['Drift angle time response with 40/60 bias - K_u = ' num2str(K_understeer_40_60_nlar) ' | u_{char} ' num2str(u_critical_40_60) ' mph']);
 legend(legends_40_60_beta{:});
 ylim([-20, 40]);
 grid on;
