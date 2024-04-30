@@ -1,4 +1,4 @@
-%% Load some initial values:
+%% Load some initial values: 
 
 close all;
 clear;
@@ -7,7 +7,7 @@ clc;
 % Conversion factors:
 deg2rad = pi / 180;
 rad2deg = 180 / pi;
-in2ft = 1 / 12;
+in2ft = 1 / 12;    
 ft2in = 12;
 mph2ftps = 5280 / 3600;
 ftps2mph = 3600 / 5280;
@@ -28,16 +28,22 @@ dl_phi_r = 5000; % lbs*ft
 dl_dphi_f = 1000; % lbs*ft
 dl_dphi_r = 500; % lbs*ft
 
+
+% Masses:
+m = W / g;
+ms = Ws / g;
+
+% Roll stiffness:
+K_phi = (dl_phi_f + dl_phi_r + ms*g*h); % lb*ft / rad
+% Roll damping:
+D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
+
 p = 12*in2ft; % ft
 d = 12*in2ft; % ft
 gear_ratio = 15; % []
 efficiency = 1.0; % Steering gearbox efficiency
 Ks = 10*in2ft*rad2deg; % (in*lbs/deg)*(ft/in)*(deg/rad) -> ft*lbs / rad
 tm = 3*in2ft; % in*(ft/in)-> ft - Pneumatic trail
-
-% Masses:
-m = W / g;
-ms = Ws / g;
 
 % u = 30; % ft/sec
 
@@ -87,11 +93,6 @@ for i = 1:length(speeds)
     Cb = x1*C1 + x2*C2;
     Cc = x1*x1*C1 + x2*x2*C2;
     
-    % Roll stiffness:
-    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
-    % Roll damping:
-    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
-    
     delta2r_wout_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
 
     % plot each gain in an xy plot:
@@ -108,13 +109,7 @@ for i = 1:length(speeds)
     Ca = C1 + C2;
     Cb = x1*C1 + x2*C2;
     Cc = x1*x1*C1 + x2*x2*C2;
-    
-    % Roll stiffness:
-    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
-    % Roll damping:
-    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
 
-    
     delta2r_w_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
 
     % plot each gain in an xy plot:
@@ -150,7 +145,7 @@ speeds = speeds*mph2ftps;
 
 % Time domain simulation:
 t_initial = 0; % sec
-t_final = 5; % sec
+t_final = 20; % sec
 dt = 0.01; % sec
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
@@ -205,6 +200,8 @@ legend_gains_w_roll_steer_arr = cell(1, length(speeds));
 legend_yaw_rate_w_roll_steer_arr = cell(1, length(speeds));
 legend_steering_angle_w_roll_steer_arr = cell(1, length(speeds));
 
+line_width = 2.0;
+
 for i = 1:length(speeds)
     u = speeds(i);
 
@@ -217,11 +214,6 @@ for i = 1:length(speeds)
     Cb = x1*C1 + x2*C2;
     Cc = x1*x1*C1 + x2*x2*C2;
     
-    % Roll stiffness:
-    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
-    % Roll damping:
-    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
-
     K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
     K_understeer_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
 
@@ -240,11 +232,11 @@ for i = 1:length(speeds)
 
     % Simulate:
     states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
-    plot(t, states_arr2(2,:));
+    plot(t, states_arr2(2,:), LineWidth=line_width);
     legend_yaw_rate_wout_roll_steer_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
 
     subplot(3,1,3);
-    plot(t, delta2);
+    plot(t, delta2, LineWidth=line_width);
     legend_steering_angle_wout_roll_steer_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
 
     % Configuration 2: eps1 = 0 and eps2 = -0.03:
@@ -255,11 +247,6 @@ for i = 1:length(speeds)
     Ca = C1 + C2;
     Cb = x1*C1 + x2*C2;
     Cc = x1*x1*C1 + x2*x2*C2;
-    
-    % Roll stiffness:
-    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
-    % Roll damping:
-    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
 
     K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
     K_understeer_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
@@ -279,11 +266,11 @@ for i = 1:length(speeds)
 
     % Simulate:
     states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
-    plot(t, states_arr2(2,:));
+    plot(t, states_arr2(2,:), LineWidth=line_width);
     legend_yaw_rate_w_roll_steer_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
 
     subplot(3,1,3);
-    plot(t, delta2);
+    plot(t, delta2, LineWidth=line_width);
     legend_steering_angle_w_roll_steer_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
 
 end
@@ -322,178 +309,144 @@ hold off;
 legend(legend_steering_angle_w_roll_steer_arr);
 grid on;
 
-
-%% 3. Use the steering input calculated in 4) from Part 1 as an input to your simulation. Repeat results
-% for the following combinations of roll steer coefficients:
-
-% Generate the input: 
+%% Configuration 1: 
+eps1 = 0.04; eps2 = 0.04;
 
 % Time array:
 t_initial = 0;
 t_final = 10;
-t = linspace(t_initial, t_final, (t_final - t_initial)/dt);
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-% Generate the specified handwheel input:
-delta = zeros(1, length(t));
-% Input of 0° for 1 second:
-delta(1, 1:1/dt) = 0;
-% Input of +45° for 3 seconds:
-delta(1, 1/dt:4/dt) = 0.707;
-% Input of -45° for 3 seconds:
-delta(1, 4/dt:7/dt) = -0.707;
-% Input of 0° for 3 seconds:
-delta(1, 7/dt:length(t)) = 0;
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config1 = mean(steady_state_gains_arr)
 
-% Plot input:
-figure;
-plot(t, delta);
-grid on;
-title('steering input with no rate saturation');
-xlabel('time (sec)');
-ylabel('delta (rad)');
-
-% Modify the steering input:
-slope = 2*(2*pi); % rad/sec
-
-% Smooth step applied at 1 second:
-left_bound = 0;
-right_bound = 0.707;
-at = 1; % /dt;
-
-delta_mod = slope_it_down(t, dt, at, delta, left_bound, right_bound, sign(right_bound - left_bound)*slope);
-
-% Smooth step applied at 4 seconds:
-left_bound = 0.707;
-right_bound = -0.707;
-at = 4; % /dt;
-
-delta_mod = slope_it_down(t, dt, at, delta_mod, left_bound, right_bound, sign(right_bound - left_bound)*slope);
-
-% Smooth step applied at 7 seconds:
-left_bound = -0.707;
-right_bound = 0;
-at = 7; % /dt;
-
-delta_mod = slope_it_down(t, dt, at, delta_mod, left_bound, right_bound, sign(right_bound - left_bound)*slope);
-
-% Plot input:
-figure;
-plot(t, delta);
-hold on;
-plot(t, delta_mod, 'r');
-grid on;
-title('steering input with smoothed angle transitions');
-xlabel('time (sec)');
-ylabel('delta (rad)');
-legend('Original input signal', 'Modified input signal');
-
-%% Configuration A: 
-eps1 = 0.04; eps2 = 0.04;
-
-K_understeer_wout_roll = (-m*Cb/(C1*C2*l2));
-K_roll_effectA = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
-
-K_understeerA = K_understeer_wout_roll + K_roll_effectA;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration B:
+%% Configuration 2:
 eps1 = 0.04; eps2 = 0.0;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*Cb/(C1*C2*l2));
-K_roll_effectB = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config2 = mean(steady_state_gains_arr)
 
-K_understeerB = K_understeer_wout_roll + K_roll_effectB;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration C:
+%% Configuration 3:
 eps1 = 0.04; eps2 = -0.04;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*Cb/(C1*C2*l2));
-K_roll_effectC = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config3 = mean(steady_state_gains_arr)
 
-K_understeerC = K_understeer_wout_roll + K_roll_effectC;
 
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration D:
+%% Configuration 4:
 eps1 = 0; eps2 = 0.04;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectD = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config4 = mean(steady_state_gains_arr)
 
-K_understeerD = K_understeer_wout_roll + K_roll_effectD;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration E:
+%% Configuration 5:
 eps1 = 0; eps2 = 0;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectE= (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config5 = mean(steady_state_gains_arr)
 
-K_understeerE = K_understeer_wout_roll + K_roll_effectE;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration F:
+%% Configuration 6:
 eps1 = 0; eps2 = -0.04;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectF = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config6 = mean(steady_state_gains_arr)
 
-K_understeerF = K_understeer_wout_roll + K_roll_effectF;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration G:
+%% Configuration 7:
 eps1 = -0.04; eps2 = 0.04;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectG = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
-
-K_understeerG = K_understeer_wout_roll + K_roll_effectG;
-
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
 test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config7 = mean(steady_state_gains_arr)
 
 
-%% Configuration H:
+%% Configuration 8:
 eps1 = -0.04; eps2 = 0;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectH = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config8 = mean(steady_state_gains_arr)
 
-K_understeerH = K_understeer_wout_roll + K_roll_effectH;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
-
-%% Configuration I:
+%% Configuration 9:
 eps1 = -0.04; eps2 = -0.04;
 desired_radius = 400;
 
-C_phi1 = eps1*C1; C_phi2 = eps2*C2;
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Define speeds of interest:
+speeds = linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
-K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-K_roll_effectI = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
-
-K_understeerI = K_understeer_wout_roll + K_roll_effectI;
-
-test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod);
+gains_avg_config9 = mean(steady_state_gains_arr)
 
 %% Part 3:
 % Return to the baseline case of 𝜖𝑓 = 0; 𝜖𝑟 = −0.03. Add the nonlinear tire model. You will have to
@@ -567,9 +520,9 @@ delta_test(1, length(t)/4:length(t)) = 0.01;
 states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_test, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
 
 % Time plots for each state:
-figure
+figure;
 plot(t, states_arr(1,:));
-figure
+figure;
 plot(t, states_arr(2,:));
 
 
@@ -594,7 +547,7 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
     Ix_steiner = Ix + ms*h*h;
 
     A = [
-        -Ca/u, -Cb/u - m*u, 0, C_phi1 + C_phi2;
+        -Ca/u, (-Cb/u) - m*u, 0, C_phi1 + C_phi2;
         -Cb/u, -Cc/u, 0, x1*C_phi1 + x2*C_phi2;
         0, ms*h*u, -D_phi, -K_phi;  
     ];
@@ -620,10 +573,11 @@ function states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta,
     
     % simulation loop:
     for i = 1:length(t)
-        states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
         states(4) = states(4) + dt*states(3); % Roll = Roll_prev + dt*(dRoll/dt)
+        states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
         states_arr(:, i) = states;
     end
+
 end
 
 function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W)
@@ -704,7 +658,7 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
 end
 
 
-function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta)
+function steady_state_gains_arr = test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta)
 
     % Conversion factors:
     deg2rad = pi / 180;
@@ -728,7 +682,6 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
     
     K_understeer = K_understeer_wout_roll + K_roll_effect;
-
 
     figure;
     subplot(3,1,1);
@@ -754,7 +707,7 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
     legend_drift_angle_arr = cell(1, length(speeds));
     legend_roll_angle_arr = cell(1, length(speeds));
 
-
+    steady_state_gains_arr = zeros(1, length(speeds));
     % Simulate for different speeds:
     for i = 1:length(speeds)
 
@@ -762,17 +715,19 @@ function test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi, e
 
         % Simulate:
         states_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
+
+        steady_state_gains_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
     
         subplot(3,1,1);
-        plot(t, states_arr(2,:));
+        plot(t, states_arr(2,:), LineWidth=2.0);
         legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
-        plot(t, states_arr(1,:) / u);
+        plot(t, states_arr(1,:) / u, LineWidth=2.0);
         legend_drift_angle_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
-        plot(t, states_arr(4,:));
+        plot(t, states_arr(4,:), LineWidth=2.0);
         legend_roll_angle_arr{i} = ['Roll angle @ ' num2str(u*ftps2mph) 'mph'];
 
     end
@@ -963,6 +918,66 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     grid on;
     hold off;
     
+end
+
+function [t, delta_mod] = generate_input_signal(dt, t_initial, t_final)
+
+    % Generate the input: 
+    t = linspace(t_initial, t_final, (t_final - t_initial)/dt);
+    
+    % Generate the specified handwheel input:
+    delta = zeros(1, length(t));
+    % Input of 0° for 1 second:
+    delta(1, 1:1/dt) = 0;
+    % Input of +45° for 3 seconds:
+    delta(1, 1/dt:4/dt) = 0.707;
+    % Input of -45° for 3 seconds:
+    delta(1, 4/dt:7/dt) = -0.707;
+    % Input of 0° for 3 seconds:
+    delta(1, 7/dt:length(t)) = 0;
+    
+    % Plot input:
+    figure;
+    plot(t, delta);
+    grid on;
+    title('steering input with no rate saturation');
+    xlabel('time (sec)');
+    ylabel('delta (rad)');
+    
+    % Modify the steering input:
+    slope = 2*(2*pi); % rad/sec
+    
+    % Smooth step applied at 1 second:
+    left_bound = 0;
+    right_bound = 0.707;
+    at = 1; % /dt;
+    
+    delta_mod = slope_it_down(t, dt, at, delta, left_bound, right_bound, sign(right_bound - left_bound)*slope);
+    
+    % Smooth step applied at 4 seconds:
+    left_bound = 0.707;
+    right_bound = -0.707;
+    at = 4; % /dt;
+    
+    delta_mod = slope_it_down(t, dt, at, delta_mod, left_bound, right_bound, sign(right_bound - left_bound)*slope);
+    
+    % Smooth step applied at 7 seconds:
+    left_bound = -0.707;
+    right_bound = 0;
+    at = 7; % /dt;
+    
+    delta_mod = slope_it_down(t, dt, at, delta_mod, left_bound, right_bound, sign(right_bound - left_bound)*slope);
+    
+    % Plot input:
+    figure;
+    plot(t, delta);
+    hold on;
+    plot(t, delta_mod, 'r');
+    grid on;
+    title('steering input with smoothed angle transitions');
+    xlabel('time (sec)');
+    ylabel('delta (rad)');
+    legend('Original input signal', 'Modified input signal');
 end
 
 function delta = slope_it_down(t, dt, at, delta, left_bound, right_bound, slope)
