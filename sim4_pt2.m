@@ -459,7 +459,7 @@ close all;
 % Time array:
 t_initial = 0;
 t_final = 10;
-dt = 0.005;
+dt = 0.002;
 % Generate input signal with time array:
 [t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
 
@@ -470,7 +470,7 @@ speeds = speeds*mph2ftps;
 
 eps1 = 0; eps2 = -0.03;
 
-test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod, W)
+test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod, W, C1, C2)
 
 %% Test non-linear model:
 
@@ -616,10 +616,10 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
     states_arr = zeros(length(states),length(t));
 
     % Weight arrays:
-    W1r_arr = zeros(length(t));
-    W1l_arr = zeros(length(t));
-    W2r_arr = zeros(length(t));
-    W2l_arr = zeros(length(t));
+    W1r_arr = zeros(1, length(t));
+    W1l_arr = zeros(1, length(t));
+    W2r_arr = zeros(1, length(t));
+    W2l_arr = zeros(1, length(t));
     
     % simulation loop:[W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr]
     for i = 1:length(t)
@@ -633,10 +633,10 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
         W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3)); % *0.5;
         
         % Store the weights to analyze weight transfer over time:
-        W1r_arr(i) = W1r;
-        W1l_arr(i) = W1l;
-        W2r_arr(i) = W2r;
-        W2l_arr(i) = W2l;
+        W1r_arr(1,i) = W1r;
+        W1l_arr(1,i) = W1l;
+        W2r_arr(1,i) = W2r;
+        W2l_arr(1,i) = W2l;
 
         % Non-linear tires:
         C1r = 0.2*W1r - 0.0000942*W1r*W1r;
@@ -770,7 +770,7 @@ end
 
 
 
-function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta, W)
+function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta, W, C1_lin, C2_lin)
 
     % Conversion factors:
     deg2rad = pi / 180;
@@ -779,22 +779,6 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     ft2in = 12;
     mph2ftps = 5280 / 3600;
     ftps2mph = 3600 / 5280;
-
-    % % Ordinary bicycle model setup:
-    % Ca = C1 + C2;
-    % Cb = x1*C1 + x2*C2;
-    % Cc = x1*x1*C1 + x2*x2*C2;
-    % 
-    % l2 = x1 - x2;
-    % 
-    % C_phi1 = C1*eps1; C_phi2 = C2*eps2;
-    
-    % Calculate our understeering coefficient:
-    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
-    % 
-    % K_understeer = K_understeer_wout_roll + K_roll_effect;
-
 
     figure(1);
     subplot(3,1,1);
@@ -843,9 +827,9 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     hold on;
     grid on;
     
-    legend_yaw_rate_arr = cell(1, length(speeds));
-    legend_drift_angle_arr = cell(1, length(speeds));
-    legend_roll_angle_arr = cell(1, length(speeds));
+    legend_yaw_rate_arr = {}; % cell(1, 2*length(speeds));
+    legend_drift_angle_arr = {}; % cell(1, 2*length(speeds));
+    legend_roll_angle_arr = {}; % cell(1, 2*length(speeds));
 
     legend_W1l_arr = cell(1, length(speeds));
     legend_W1r_arr = cell(1, length(speeds));
@@ -859,22 +843,30 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
         u = speeds(i);
 
         % Simulate:
-        [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+        [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_non_linear_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+
+        states_linear_arr = simulate_bike_3dof(dt, t, m, x1, x2, C1_lin, C2_lin, Iz, u, delta, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
         
         % States time response plots:
 
         figure(1);
         subplot(3,1,1);
-        plot(t, states_arr(2,:));
-        legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_non_linear_arr(2,:), LineWidth=2);
+        legend_yaw_rate_arr{end+1} = ['Yaw rate w nlar tires @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_linear_arr(2,:), '--', LineWidth=1);
+        legend_yaw_rate_arr{end+1} = ['Yaw rate w linear tires @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
-        plot(t, states_arr(1,:) / u); % Normalize by longitudinal speed to get the drift angle
-        legend_drift_angle_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_non_linear_arr(1,:) / u, LineWidth=2); % Normalize by longitudinal speed to get the drift angle
+        legend_drift_angle_arr{end+1} = ['Drift angle w nlar tires @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_linear_arr(1,:) / u, '--', LineWidth=1);
+        legend_drift_angle_arr{end+1} = ['Drift angle w linear tires @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
-        plot(t, states_arr(4,:));
-        legend_roll_angle_arr{i} = ['Roll angle @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_non_linear_arr(4,:), LineWidth=2);
+        legend_roll_angle_arr{end+1} = ['Roll angle w weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_linear_arr(4,:), '--', LineWidth=1);
+        legend_roll_angle_arr{end+1} = ['Roll angle w linear tires @ ' num2str(u*ftps2mph) 'mph'];
 
 
         % Weight transfer time response plots:
