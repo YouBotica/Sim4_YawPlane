@@ -1,5 +1,9 @@
 %% Load some initial values:
 
+close all;
+clear;
+clc;
+
 % Conversion factors:
 deg2rad = pi / 180;
 rad2deg = 180 / pi;
@@ -50,13 +54,15 @@ l2 = x1 - x2; % Wheelbase
 
 speeds = linspace(10, 120, 12)*mph2ftps;
 
-delta2r_gain_arr = zeros(1, length(speeds));
+delta2r_w_roll_steer_gain_arr = zeros(1, length(speeds));
+delta2r_wout_roll_steer_gain_arr = zeros(1, length(speeds));
 
 dt = 0.01;
 t_initial = 0;
 t_final = 5;
 
 t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
+
 
 figure; 
 hold on;
@@ -66,44 +72,68 @@ ylabel('Gain (𝑟/𝛿)');
 xlim([t_initial, t_final]);
 ylim([0, 6.0]);
 
-% TODO: Calculate K_understeer
 
-% Roll steer:
-eps1 = 0;
-eps2 = -0.03;
-
-C_phi1 = C1*eps1; C_phi2 = C2*eps2;
-Ca = C1 + C2;
-Cb = x1*C1 + x2*C2;
-Cc = x1*x1*C1 + x2*x2*C2;
-
-% Roll stiffness:
-K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
-% Roll damping:
-D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
-
-
-legend_arr = cell(1, length(speeds)); 
+legend_w_roll_steer_arr = cell(1, length(speeds)); 
+legend_wout_roll_steer_arr = cell(1, length(speeds)); 
 for i = 1:length(speeds)
     u = speeds(i);
 
-    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    % Without roll steer:
+    eps1 = 0;
+    eps2 = 0.0;
 
-    % K_understeer = K_understeer_wout_roll + K_roll_effect;
-    % 
-    % delta2r_gain_arr(i) = (u) / (l2 + u*u*K_understeer);
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
     
-    delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+    % Roll stiffness:
+    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
+    % Roll damping:
+    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
+    
+    delta2r_wout_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
 
     % plot each gain in an xy plot:
-    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
-    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);
-    legend_arr{i} = [num2str(u*ftps2mph) ' mph'];
+    subplot(2,1,1);
+    yline(delta2r_wout_roll_steer_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    legend_wout_roll_steer_arr{i} = ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) ' mph'];
+    hold on;
+
+    % With rear roll steer coefficient of -0.03:
+    eps1 = 0;
+    eps2 = -0.03;
+
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
+    
+    % Roll stiffness:
+    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
+    % Roll damping:
+    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
+
+    
+    delta2r_w_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+
+    % plot each gain in an xy plot:
+    subplot(2,1,2);
+    yline(delta2r_w_roll_steer_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_w_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    legend_w_roll_steer_arr{i} = ['s.s gain = ' num2str(delta2r_w_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) ' mph'];
     hold on;
 end
 
-legend(legend_arr{:});
+subplot(2,1,1);
+xlabel('Time (seconds)');
+ylabel('Gain []');
+title('Steady state gains at different speeds with ε_1=0.0 and ε_2=0.0');
+legend(legend_wout_roll_steer_arr{:}, 'Location', 'eastoutside');
+subplot(2,1,2);
+xlabel('Time (seconds)');
+ylabel('Gain []');
+title('Steady state gains at different speeds with ε_1=0.0 and ε_2=-0.03');
+legend(legend_w_roll_steer_arr{:}, 'Location', 'eastoutside');
 
 hold off;
 
@@ -112,6 +142,7 @@ hold off;
 % speed and radius of a circle, the required yaw rate can be calculated). Repeat the result at
 % increments of 10 mph from 10 to 120 mph. Compare the results with the steady-state results from
 % 1) above. As before, we are using this step to validate your simulation model.
+close all;
 
 radius = 400; % ft
 speeds = linspace(10, 120, 12);
@@ -125,73 +156,172 @@ t = linspace(t_initial, t_final, (t_final - t_initial) / dt);
 
 
 
-figure;
+figure(1);
 subplot(3,1,1);
 xlabel('Time (seconds)');
 ylabel('Gain []');
+title('Steady state gains for different speeds with ε_1=0.0 and ε_2=0.0');
 hold on;
 grid on;
 
 subplot(3,1,2);
 xlabel('Time (seconds)');
 ylabel('Yaw rate (rad/sec)');
+title('Yaw rate response for different speeds with ε_1=0.0 and ε_2=0.0');
 hold on;
 
 subplot(3,1,3);
 xlabel('Time (seconds)');
 ylabel('Steering angle (rad)');
+title('Steering wheel angle required to produce a turn radius of 400 ft');
 hold on;
 
-legend_gains_arr = cell(1, length(speeds));
-legend_yaw_rate_arr = cell(1, length(speeds));
-legend_steering_angle_arr = cell(1, length(speeds));
 
-eps1 = 0; eps2 = -0.03;
+figure(2);
+subplot(3,1,1);
+xlabel('Time (seconds)');
+ylabel('Gain []');
+title('Steady state gains for different speeds with ε_1=0.0 and ε_2=-0.03');
+hold on;
+grid on;
+
+subplot(3,1,2);
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+title('Yaw rate response for different speeds with ε_1=0.0 and ε_2=-0.03');
+hold on;
+
+subplot(3,1,3);
+xlabel('Time (seconds)');
+ylabel('Steering angle (rad)');
+title('Steering wheel angle required to produce a turn radius of 400 ft');
+hold on;
+
+legend_gains_wout_roll_steer_arr = cell(1, length(speeds));
+legend_yaw_rate_wout_roll_steer_arr = cell(1, length(speeds));
+legend_steering_angle_wout_roll_steer_arr = cell(1, length(speeds));
+
+legend_gains_w_roll_steer_arr = cell(1, length(speeds));
+legend_yaw_rate_w_roll_steer_arr = cell(1, length(speeds));
+legend_steering_angle_w_roll_steer_arr = cell(1, length(speeds));
 
 for i = 1:length(speeds)
     u = speeds(i);
 
-    % K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
-    % K_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+    % Configuration 1: eps1 = 0 and eps2 = 0:
+    eps1 = 0;
+    eps2 = 0;
+
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
     
-    delta2r_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+    % Roll stiffness:
+    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
+    % Roll damping:
+    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
 
+    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    K_understeer_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+    K_understeer_total_wout_roll_steer = K_understeer_wout_roll + K_understeer_roll_effect;
+    delta2r_wout_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+
+    % plot each gain in an xy plot:
+    figure(1);
     subplot(3,1,1);
-    % plot(t, delta2r_gain_arr(i)*ones(length(t)), '--', 'LineWidth', 2);     % DEPRECATED
-
-    yline(delta2r_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
-    legend_gains_arr{i} = ['s.s gain = ' num2str(delta2r_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'];
+    yline(delta2r_wout_roll_steer_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    legend_gains_wout_roll_steer_arr{i} = ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) ' mph'];
+    hold on;
     
     subplot(3,1,2);
-    delta2 = (u / radius)*ones(1, length(t));
+    delta2 = (1 / radius)*(l2 + (u*u*K_understeer_total_wout_roll_steer))*ones(1, length(t));
 
     % Simulate:
     states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
     plot(t, states_arr2(2,:));
-    legend_yaw_rate_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
+    legend_yaw_rate_wout_roll_steer_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
 
     subplot(3,1,3);
     plot(t, delta2);
-    legend_steering_angle_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+    legend_steering_angle_wout_roll_steer_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+
+    % Configuration 2: eps1 = 0 and eps2 = -0.03:
+    eps1 = 0;
+    eps2 = -0.03;
+
+    C_phi1 = C1*eps1; C_phi2 = C2*eps2;
+    Ca = C1 + C2;
+    Cb = x1*C1 + x2*C2;
+    Cc = x1*x1*C1 + x2*x2*C2;
+    
+    % Roll stiffness:
+    K_phi = (dl_phi_f + dl_phi_f + ms*g*h); % lb*ft / rad
+    % Roll damping:
+    D_phi = (dl_dphi_f + dl_dphi_r); % lb*ft/sec / (rad/sec)
+
+    K_understeer_wout_roll = (-m*(Cb)/(C1*C2*l2));
+    K_understeer_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+    K_understeer_total_wout_roll_steer = K_understeer_wout_roll + K_understeer_roll_effect;
+    delta2r_wout_roll_steer_gain_arr(i) = (u*C1*(Cb-x1*Ca)) /(Cb*Cb - Ca*Cc + Cb*m*u*u + (x1*Ca*C_phi1 + x2*Ca*C_phi2 - (C_phi1 + C_phi2)*Cb)*(ms*h*u*u / K_phi));
+
+    % plot each gain in an xy plot:
+    figure(2);
+    subplot(3,1,1);
+    yline(delta2r_wout_roll_steer_gain_arr(i),'--', ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) 'mph'], 'Color', rand(1,3), 'LineWidth', 2);
+    legend_w_roll_steer_arr{i} = ['s.s gain = ' num2str(delta2r_wout_roll_steer_gain_arr(i)) ' @ ' num2str(u*ftps2mph) ' mph'];
+    hold on;
+    
+    subplot(3,1,2);
+    delta2 = (1 / radius)*(l2 + (u*u*K_understeer_total_wout_roll_steer))*ones(1, length(t));
+
+    % Simulate:
+    states_arr2 = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta2, ms, h, K_phi, D_phi, eps1, eps2, Ix, c);
+    plot(t, states_arr2(2,:));
+    legend_yaw_rate_w_roll_steer_arr{i} = ['Calculated s.s gain @ ' num2str(u*ftps2mph) ' is ' num2str(states_arr2(2, length(t))/delta2(length(t)))];
+
+    subplot(3,1,3);
+    plot(t, delta2);
+    legend_steering_angle_w_roll_steer_arr{i} = ['𝛿 = ' num2str(delta2(1)) ' @ ' num2str(u*ftps2mph) 'mph'];
+
 end
 
 
+figure(1);
 subplot(3,1,1);
 hold off;
-legend(legend_gains_arr);
+legend(legend_wout_roll_steer_arr);
 grid on;
 
 subplot(3,1,2);
 hold off;
-legend(legend_yaw_rate_arr);
+legend(legend_yaw_rate_wout_roll_steer_arr);
 grid on;
 
 subplot(3,1,3);
 hold off;
-legend(legend_steering_angle_arr);
+legend(legend_steering_angle_wout_roll_steer_arr);
 grid on;
 
+
+figure(2);
+subplot(3,1,1);
 hold off;
+legend(legend_w_roll_steer_arr);
+grid on;
+
+subplot(3,1,2);
+hold off;
+legend(legend_yaw_rate_w_roll_steer_arr);
+grid on;
+
+subplot(3,1,3);
+hold off;
+legend(legend_steering_angle_w_roll_steer_arr);
+grid on;
+
 
 %% 3. Use the steering input calculated in 4) from Part 1 as an input to your simulation. Repeat results
 % for the following combinations of roll steer coefficients:
