@@ -454,21 +454,37 @@ gains_avg_config9 = mean(steady_state_gains_arr)
 % damping on the sprung mass are reacted by vertical forces through the contact patch of the tires,
 % and add to or subtract from the static tire loads. Compare and interpret your results above with
 % the corresponding results from (Part 2: 3-DoF Vehicle (Linear)).
+close all;
+
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.01;
+% Generate input signal with time array:
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+
+% Define speeds of interest:
+speeds = linspace(10,60, 2); % linspace(10, 120, 12);
+speeds = speeds*mph2ftps;
 
 eps1 = 0; eps2 = -0.03;
 
-% C_phi1 = eps1*C1; C_phi2 = eps2*C2;
-
-test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta, W)
+test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod, W)
 
 %% Test non-linear model:
 
 % Generate a step test input for the steering angle delta:
 delta_test = zeros(1, length(t));
-delta_test(1, length(t)/4:length(t)) = 0.01;
-
+delta_test(1, length(t)/4:length(t)) = 0.1;
+% eps1 = 0.0; eps2 = 0.0;
 % Simulate:
 [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_test, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, W);
+
+% Calculate the understeering coefficient:
+K_understeer_handling_effect = (-m*(Cb)/(C1*C2*l2));
+K_understeer_roll_effect = (ms*h/K_phi)*(Cb*(C_phi1 + C_phi2) - Ca*(x1*C_phi1 + x2*C_phi2))/(C1*C2*l2);
+
+K_understeer_total = K_understeer_handling_effect + K_understeer_roll_effect;
 
 % Plot the results:
 figure;
@@ -609,11 +625,11 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
         
         W1 = W/2; W2 = W/2; % Assuming 50/50 weight bias:
         % Weight transfer:
-        W1r = (W1/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
-        W1l = (W1/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
+        W1r = (W1/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3)); %*0.5; %  + ms*h*u*states(2)
+        W1l = (W1/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3)); %*0.5;
 
-        W2r = (W2/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
-        W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3));
+        W2r = (W2/2) + (1/(4*h))*(-K_phi*states(4) - D_phi*states(3)); % *0.5;
+        W2l = (W2/2) - (1/(4*h))*(-K_phi*states(4) - D_phi*states(3)); % *0.5;
         
         % Store the weights to analyze weight transfer over time:
         W1r_arr(i) = W1r;
@@ -625,12 +641,12 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
         C1r = 0.2*W1r - 0.0000942*W1r*W1r;
         C1l = 0.2*W1l - 0.0000942*W1l*W1l;
 
-        C1 = C1r + C1l;
+        C1 = (C1r + C1l)*(180/pi); % Convert to lbs/rad
 
         C2r = 0.2*W2r - 0.0000942*W2r*W2r;
         C2l = 0.2*W2l - 0.0000942*W2l*W2l;
 
-        C2 = C2r + C2l;
+        C2 = (C2r + C2l)*(180/pi); % Convert to lbs/rad
 
         % Roll steer effects:
         C_phi1 = C1*eps1; C_phi2 = C2*eps2;
@@ -651,6 +667,8 @@ function [W1l_arr, W1r_arr, W2l_arr, W2r_arr, states_arr] = simulate_non_linear_
             x1*C1;
             0; 
         ];
+
+
         states(1:3) = (states(1:3) + inv(inertia_matrix)*dt*(A*states + B*delta(i))); % inv(inertia_matrix)*(A_dis * states + B_dis * delta(i));
         states(4) = states(4) + dt*states(3);
         states_arr(:, i) = states;
@@ -850,7 +868,7 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
         legend_yaw_rate_arr{i} = ['Yaw rate @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
-        plot(t, states_arr(1,:) / u);
+        plot(t, states_arr(1,:) / u); % Normalize by longitudinal speed to get the drift angle
         legend_drift_angle_arr{i} = ['Drift angle @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
@@ -864,11 +882,11 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
         subplot(4,1,1);
         plot(t, W1l_arr);
         legend_W1l_arr{i} = ['Front left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
-        
+
         subplot(4,1,2);
         plot(t, W1r_arr);
         legend_W1r_arr{i} = ['Front right weight transfer @ ' num2str(u*ftps2mph) 'mph'];
-    
+
         subplot(4,1,3);
         plot(t, W2l_arr);
         legend_W2l_arr{i} = ['Rear left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
@@ -902,7 +920,7 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     legend(legend_W1l_arr);
     grid on;
     hold off;
-    
+
     subplot(4,1,2);
     legend(legend_W1r_arr);
     grid on;
