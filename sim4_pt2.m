@@ -459,12 +459,13 @@ close all;
 % Time array:
 t_initial = 0;
 t_final = 10;
-dt = 0.01;
+dt = 0.005;
 % Generate input signal with time array:
 [t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
 
+
 % Define speeds of interest:
-speeds = linspace(10,60, 2); % linspace(10, 120, 12);
+speeds = linspace(10, 120, 12); % linspace(10, 120, 12);
 speeds = speeds*mph2ftps;
 
 eps1 = 0; eps2 = -0.03;
