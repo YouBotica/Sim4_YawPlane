@@ -470,7 +470,7 @@ speeds = speeds*mph2ftps;
 
 eps1 = 0; eps2 = -0.03;
 
-test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod, W, C1, C2)
+test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi, eps1, eps2, Ix, c, delta_mod*0.05, W, C1, C2)
 
 %% Test non-linear model:
 
@@ -522,7 +522,134 @@ grid on;
 % test_model(dt, t, m, x1, x2, C1, C2, Iz, speeds, ms, h, K_phi, D_phi,
 % eps1, eps2, Ix, c, delta_mod); TODO
 
+%% 2. Use your model to comment on the effect of roll stiffness and roll damping on vehicle handling.
+% That is, vary the parameters and describe the effect. Present significant results and comment on
+% them.
 
+% Time array:
+t_initial = 0;
+t_final = 10;
+dt = 0.002;
+
+% Generate input signal with time array:
+[t, delta_mod] = generate_input_signal(dt, t_initial, t_final);
+delta_mod = delta_mod*0.05; % Scale the input signal
+
+K_phi_arr = linspace(K_phi*0.5, 2*K_phi, 5);
+D_phi_arr = linspace(D_phi*0.5, 2*D_phi, 5);
+
+% Roll steers:
+eps1 = 0; eps2 = -0.03;
+
+close all;
+figure(1);
+subplot(3,1,1);
+hold on;
+grid on;
+title('Effect of roll stiffness on yaw rate at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+
+subplot(3,1,2);
+hold on;
+grid on;
+title('Effect of roll stiffness on drift angle at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+
+subplot(3,1,3);
+hold on;
+grid on;
+title('Effect of roll stiffness on roll angle at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Roll angle (rad)');
+
+legend_non_lin_yaw_rate_arr = {};
+legend_non_lin_drift_angle_arr = {};
+legend_non_lin_roll_angle_arr = {};
+
+for i = 1:length(K_phi_arr) % We leave the damping constant at its nominal value and vary the stiffness
+
+    u = 60*mph2ftps;
+
+    [W1l_arr_non_lin, W1r_arr_non_lin, W2l_arr_non_lin, W2r_arr_non_lin, states_arr_non_lin] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_mod, ms, h, K_phi_arr(i), D_phi, eps1, eps2, Ix, c, W);
+    states_arr_lin = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod, ms, h, K_phi_arr(i), D_phi, eps1, eps2, Ix, c);
+
+    % Plot the states:
+    figure(1);
+    subplot(3,1,1);
+    plot(t, states_arr_non_lin(2,:), 'LineWidth', 2);
+    legend_non_lin_yaw_rate_arr{end+1} = ['Non lin. with K_{\phi} = ' num2str(K_phi_arr(i))];
+    plot(t, states_arr_lin(2,:), '--');
+    legend_non_lin_yaw_rate_arr{end+1} = ['Linear with K_{\phi} = ' num2str(K_phi_arr(i))];
+    subplot(3,1,2);
+    plot(t, states_arr_non_lin(1,:) / u, 'LineWidth', 2); % Normalize by longitudinal speed to get drift angle.
+    plot(t, states_arr_lin(1,:) / u, '--'); % Normalize by longitudinal speed to get drift angle.
+    % legend_non_lin_drift_angle_arr{end+1} = ;
+    subplot(3,1,3);
+    plot(t, states_arr_non_lin(4,:), 'LineWidth', 2);
+    plot(t, states_arr_lin(4,:), '--');
+ 
+end
+
+subplot(3,1,3)
+legend(legend_non_lin_yaw_rate_arr);
+
+
+%% Do the same as before, but keeping K_phi at its nominal value and varying D_phi:
+close all;
+
+subplot(3,1,1);
+hold on;
+grid on;
+title('Effect of roll damping on yaw rate at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Yaw rate (rad/sec)');
+
+subplot(3,1,2);
+hold on;
+grid on;
+title('Effect of roll damping on drift angle at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Drift angle (rad)');
+
+subplot(3,1,3);
+hold on;
+grid on;
+title('Effect of roll damping on roll angle at 60 mph');
+xlabel('Time (seconds)');
+ylabel('Roll angle (rad)');
+
+legend_non_lin_yaw_rate_arr = {};
+legend_non_lin_drift_angle_arr = {};
+legend_non_lin_roll_angle_arr = {};
+
+for i = 1:length(D_phi_arr) % We leave the damping constant at its nominal value and vary the stiffness
+
+    u = 60*mph2ftps;
+    [W1l_arr_non_lin, W1r_arr_non_lin, W2l_arr_non_lin, W2r_arr_non_lin, states_arr_non_lin] = simulate_non_linear_bike_3dof(dt, t, m, x1, x2, Iz, u, delta_mod, ms, h, K_phi, D_phi_arr(i), eps1, eps2, Ix, c, W);
+    states_arr_lin = simulate_bike_3dof(dt, t, m, x1, x2, C1, C2, Iz, u, delta_mod, ms, h, K_phi, D_phi_arr(i), eps1, eps2, Ix, c);
+
+    % Plot the states:
+    figure(1);
+    subplot(3,1,1);
+    plot(t, states_arr_non_lin(2,:), 'LineWidth', 2);
+    legend_non_lin_yaw_rate_arr{end+1} = ['Non lin. with D_{\phi} = ' num2str(D_phi_arr(i))];
+    plot(t, states_arr_lin(2,:), '--');
+    legend_non_lin_yaw_rate_arr{end+1} = ['Linear with D_{\phi} = ' num2str(D_phi_arr(i))];
+    subplot(3,1,2);
+    plot(t, states_arr_non_lin(1,:) / u, 'LineWidth', 2); % Normalize by longitudinal speed to get drift angle.
+    plot(t, states_arr_lin(1,:) / u, '--');
+    % legend_non_lin_drift_angle_arr{end+1} = ;
+    subplot(3,1,3);
+    plot(t, states_arr_non_lin(4,:), 'LineWidth', 2);
+    plot(t, states_arr_lin(4,:), '--');
+ 
+end
+
+
+subplot(3,1,3);
+legend(legend_non_lin_yaw_rate_arr);
 
 %% Test linear model here:
 
@@ -803,26 +930,26 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     figure(2);
     subplot(4,1,1);
     xlabel('Time (seconds)');
-    ylabel('Front left weight transfer (lbs)');
+    ylabel('FL weight transfer (lbs)');
     title(['Left weight transfer with ε1= ' num2str(eps1) ' and ε2= ' num2str(eps2)]);
     hold on;
 
     subplot(4,1,2);
     xlabel('Time (seconds)');
-    ylabel('Front right weight transfer (lbs)')
+    ylabel('FR weight transfer (lbs)')
     title(['Front right weight transfer for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
     hold on;
     grid on;
     
     subplot(4,1,3);
     xlabel('Time (seconds)');
-    ylabel('Rear left weight transfer (lbs)');
+    ylabel('RL weight transfer (lbs)');
     title(['Rear left weight transfer for ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
     hold on;
 
     subplot(4,1,4);
     xlabel('Time (seconds)');
-    ylabel('Rear right weight transfer (lbs)')
+    ylabel('RR weight transfer (lbs)')
     title(['Rear right weight transfer ε1= ' num2str(eps1) ', ε2= ' num2str(eps2)]);
     hold on;
     grid on;
@@ -851,19 +978,19 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
 
         figure(1);
         subplot(3,1,1);
-        plot(t, states_non_linear_arr(2,:), LineWidth=2);
-        legend_yaw_rate_arr{end+1} = ['Yaw rate w nlar tires @ ' num2str(u*ftps2mph) 'mph'];
+        plot(t, states_non_linear_arr(2,:), LineWidth=1);
+        legend_yaw_rate_arr{end+1} = ['With non-linear tires @ ' num2str(u*ftps2mph) 'mph'];
         plot(t, states_linear_arr(2,:), '--', LineWidth=1);
-        legend_yaw_rate_arr{end+1} = ['Yaw rate w linear tires @ ' num2str(u*ftps2mph) 'mph'];
+        legend_yaw_rate_arr{end+1} = ['With linear tires @ ' num2str(u*ftps2mph) 'mph'];
         
         subplot(3,1,2);
-        plot(t, states_non_linear_arr(1,:) / u, LineWidth=2); % Normalize by longitudinal speed to get the drift angle
+        plot(t, states_non_linear_arr(1,:) / u, LineWidth=1); % Normalize by longitudinal speed to get the drift angle
         legend_drift_angle_arr{end+1} = ['Drift angle w nlar tires @ ' num2str(u*ftps2mph) 'mph'];
         plot(t, states_linear_arr(1,:) / u, '--', LineWidth=1);
         legend_drift_angle_arr{end+1} = ['Drift angle w linear tires @ ' num2str(u*ftps2mph) 'mph'];
     
         subplot(3,1,3);
-        plot(t, states_non_linear_arr(4,:), LineWidth=2);
+        plot(t, states_non_linear_arr(4,:), LineWidth=1);
         legend_roll_angle_arr{end+1} = ['Roll angle w weight transfer @ ' num2str(u*ftps2mph) 'mph'];
         plot(t, states_linear_arr(4,:), '--', LineWidth=1);
         legend_roll_angle_arr{end+1} = ['Roll angle w linear tires @ ' num2str(u*ftps2mph) 'mph'];
@@ -874,19 +1001,19 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
         figure(2);
         subplot(4,1,1);
         plot(t, W1l_arr);
-        legend_W1l_arr{i} = ['Front left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        legend_W1l_arr{i} = ['@ ' num2str(u*ftps2mph) 'mph'];
 
         subplot(4,1,2);
         plot(t, W1r_arr);
-        legend_W1r_arr{i} = ['Front right weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        legend_W1r_arr{i} = ['@ ' num2str(u*ftps2mph) 'mph'];
 
         subplot(4,1,3);
         plot(t, W2l_arr);
-        legend_W2l_arr{i} = ['Rear left weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        legend_W2l_arr{i} = ['@ ' num2str(u*ftps2mph) 'mph'];
 
         subplot(4,1,4);
         plot(t, W2r_arr);
-        legend_W2r_arr{i} = ['Rear right weight transfer @ ' num2str(u*ftps2mph) 'mph'];
+        legend_W2r_arr{i} = ['@ ' num2str(u*ftps2mph) 'mph'];
 
     end
     
@@ -898,12 +1025,12 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     hold off;
     
     subplot(3,1,2);
-    legend(legend_drift_angle_arr);
+    % legend(legend_drift_angle_arr);
     grid on;
     hold off;
 
     subplot(3,1,3);
-    legend(legend_roll_angle_arr);
+    % legend(legend_roll_angle_arr);
     grid on;
     hold off;
     
@@ -915,17 +1042,17 @@ function test_nonlinear_model(dt, t, m, x1, x2, Iz, speeds, ms, h, K_phi, D_phi,
     hold off;
 
     subplot(4,1,2);
-    legend(legend_W1r_arr);
+    % legend(legend_W1r_arr);
     grid on;
     hold off;
 
     subplot(4,1,3);
-    legend(legend_W2l_arr);
+    % legend(legend_W2l_arr);
     grid on;
     hold off;
 
     subplot(4,1,4);
-    legend(legend_W2r_arr);
+    % legend(legend_W2r_arr);
     grid on;
     hold off;
     
